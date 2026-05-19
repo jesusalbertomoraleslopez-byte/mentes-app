@@ -1,45 +1,41 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
+from streamlit_gsheets import GSheetsConnection
 
 # Configuración de la pestaña del navegador
 st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
-# --- CONEXIÓN DE ESCRITORIO LOCAL ---
-RUTA_EXCEL = r"G:\Mi unidad\MENTES CON ALAS\ENTREGABLES KPI-LUPITA.xlsx"
-NOMBRE_HOJA = "PARTICIPACION DE INTEGRANTES"
-RUTA_LOGO = r"G:\Mi unidad\MENTES CON ALAS\logo-mentes.png"
+# URL de tu archivo Google Sheets en internet
+ENLACE_SHEETS = "https://google.com"
+URL_LOGO = "https://mentesconalas.org.mx"
 
 def cargar_menus_y_datos():
-    if not os.path.exists(RUTA_EXCEL):
-        st.error(f"⚠️ No se encontró el archivo en la ruta: {RUTA_EXCEL}. Verifica que Google Drive de escritorio esté abierto.")
-        st.stop()
     try:
-        df = pd.read_excel(RUTA_EXCEL, sheet_name=NOMBRE_HOJA)
+        # Conexión nativa y segura usando los secrets configurados
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(spreadsheet=ENLACE_SHEETS, ttl=0)
+        
+        # Limpiar y obtener valores únicos para los menús
         integrantes = sorted(df.iloc[:, 1].dropna().astype(str).str.strip().unique())
         talleres = sorted(df.iloc[:, 2].dropna().astype(str).str.strip().unique())
         return integrantes, talleres, df
     except Exception as e:
-        st.error(f"❌ Error al leer el archivo Excel: {e}")
+        st.error(f"❌ Error al conectar con Google Sheets en internet: {e}")
         st.stop()
 
-# Cargar la base de datos local
+# Cargar la base de datos actual desde internet
 lista_integrantes, lista_talleres, df_original = cargar_menus_y_datos()
 
-# Mapear los nombres de columnas
-col_fecha = df_original.columns
-col_asistencia = df_original.columns
-col_taller = df_original.columns
-col_horas = df_original.columns
+col_fecha = df_original.columns[0]
+col_asistencia = df_original.columns[1]
+col_taller = df_original.columns[2]
+col_horas = df_original.columns[3]
 
 # --- DISEÑO DEL ENCABEZADO ---
 col_logo_1, col_logo_2, col_logo_3 = st.columns(3)
 with col_logo_2:
-    if os.path.exists(RUTA_LOGO):
-        st.image(RUTA_LOGO, use_container_width=True)
-    else:
-        st.title("🦅 Mentes Con Alas")
+    st.image(URL_LOGO, use_container_width=True)
 
 st.markdown("<h2 style='text-align: center; color: #1E3A8A; margin-top: 0px;'>Control de Asistencia Grupal</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #6B7280;'>Administración y Registro de Participación en Talleres</p>", unsafe_allow_html=True)
@@ -47,7 +43,7 @@ st.markdown("---")
 
 # --- SECCIÓN A: AGREGAR UN TALLER NUEVO ---
 with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=False):
-    st.write("Escribe el nombre del taller. Al guardarlo, se incluirá en el menú automáticamente.")
+    st.write("Escribe el nombre del taller. Al guardarlo, se incluirá en el menú de asistencia automáticamente.")
     nuevo_taller_input = st.text_input("Nombre del nuevo taller:").strip().upper()
     boton_nuevo_taller = st.button("Guardar Taller Nuevo")
     
@@ -55,18 +51,23 @@ with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=Fa
         if not nuevo_taller_input:
             st.warning("⚠️ El nombre del taller no puede estar vacío.")
         elif nuevo_taller_input in lista_talleres:
-            st.info(f"💡 El taller '{nuevo_taller_input}' ya existe.")
+            st.info(f"💡 El taller '{nuevo_taller_input}' ya existe en tu archivo.")
         else:
             try:
+                conn = st.connection("gsheets", type=GSheetsConnection)
                 fecha_hoy = datetime.now().strftime("%d/%m/%Y")
-                nueva_fila_taller = {col_fecha: fecha_hoy, col_asistencia: "ALTA DE TALLER SISTEMA", col_taller: nuevo_taller_input, col_horas: 0.00}
+                nueva_fila_taller = {
+                    col_fecha: fecha_hoy,
+                    col_asistencia: "ALTA DE TALLER SISTEMA",
+                    col_taller: nuevo_taller_input,
+                    col_horas: 0.00
+                }
                 df_actualizado_taller = pd.concat([df_original, pd.DataFrame([nueva_fila_taller])], ignore_index=True)
-                with pd.ExcelWriter(RUTA_EXCEL, mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
-                    df_actualizado_taller.to_excel(writer, sheet_name=NOMBRE_HOJA, index=False)
-                st.success(f"✨ ¡Taller '{nuevo_taller_input}' guardado con éxito!")
+                conn.update(spreadsheet=ENLACE_SHEETS, data=df_actualizado_taller)
+                st.success(f"✨ ¡Taller '{nuevo_taller_input}' guardado en la nube!")
                 st.rerun()
-            except PermissionError:
-                st.error("❌ Error de acceso: Cierra tu archivo de Excel en la computadora antes de añadir el taller.")
+            except Exception as e:
+                st.error(f"❌ Error al guardar taller: {e}")
 
 st.markdown("---")
 
@@ -107,31 +108,33 @@ if boton_guardar:
     if not presentes:
         st.warning("⚠️ Debes seleccionar al menos a un integrante.")
     else:
-        fecha_formateada = fecha.strftime("%d/%m/%Y")
-        nuevos_registros = []
-        for integrante in presentes:
-            nueva_fila = {col_fecha: fecha_formateada, col_asistencia: integrante, col_taller: taller, col_horas: float(horas)}
-            nuevos_registros.append(nueva_fila)
         try:
+            conn = st.connection("gsheets", type=GSheetsConnection)
+            fecha_formateada = fecha.strftime("%d/%m/%Y")
+            nuevos_registros = []
+            
+            for integrante in presentes:
+                nueva_fila = {
+                    col_fecha: fecha_formateada,
+                    col_asistencia: integrante,
+                    col_taller: taller,
+                    col_horas: float(horas)
+                }
+                nuevos_registros.append(nueva_fila)
+                
             df_nuevos = pd.DataFrame(nuevos_registros)
             df_actualizado = pd.concat([df_original, df_nuevos], ignore_index=True)
-            with pd.ExcelWriter(RUTA_EXCEL, mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
-                df_actualizado.to_excel(writer, sheet_name=NOMBRE_HOJA, index=False)
-            st.success(f"🎉 ¡Éxito! Se guardaron {len(presentes)} registros en tu Excel local.")
+            
+            conn.update(spreadsheet=ENLACE_SHEETS, data=df_actualizado)
+            st.success(f"🎉 ¡Éxito! Se guardaron {len(presentes)} registros en internet.")
             st.session_state.asistencia_estados = {nombre: True for nombre in lista_integrantes}
             st.rerun()
-        except PermissionError:
-            st.error("❌ Cierra tu archivo Excel 'ENTREGABLES KPI-LUPITA.xlsx' antes de guardar.")
         except Exception as error:
-            st.error(f"❌ Error: {error}")
+            st.error(f"❌ Error al guardar asistencia: {error}")
 
 st.markdown("---")
-st.markdown("### 📋 Últimos Registros Guardados")
-try:
-    df_vista = pd.read_excel(RUTA_EXCEL, sheet_name=NOMBRE_HOJA)
-    if not df_vista.empty:
-        st.dataframe(df_vista.tail(15).iloc[::-1], use_container_width=True)
-except Exception:
-    st.caption("Conectando con el historial...")
+st.markdown("### 📋 Historial de Asistencias (Últimos registros)")
+st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial - Mentes con Alas</a></p>", unsafe_allow_html=True)
+
