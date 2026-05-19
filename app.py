@@ -10,25 +10,38 @@ URL_LOGO = "https://mentesconalas.org.mx"
 
 def cargar_menus_y_datos():
     try:
-        # CONEXIÓN OFICIAL: Busca los secretos del sistema en la nube de forma automática
+        # CONEXIÓN DIRECTA A LA NUBE DE GOOGLE SHEETS
         conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(ttl=0) # ttl=0 obliga a leer datos frescos siempre de la nube
         
-        # Limpiar y obtener valores únicos para los menús
-        integrantes = sorted(df.iloc[:, 1].dropna().astype(str).str.strip().unique())
-        talleres = sorted(df.iloc[:, 2].dropna().astype(str).str.strip().unique())
+        # Saltamos la fila 1 vacía del Excel para tomar los encabezados reales de la Fila 2
+        df = conn.read(ttl=0, header=1) 
+        
+        # Limpieza de celdas y columnas fantasmas del documento
+        df = df.dropna(how='all', axis=1)
+        df = df.dropna(subset=[df.columns[0], df.columns[1]])
+        
+        # Extraer los talleres reales únicos de la columna B (TALLER)
+        talleres = sorted(df.iloc[:, 1].dropna().astype(str).str.strip().unique())
+        
+        # LISTA DE INTEGRANTES MANUAL (Para evitar errores de lectura al no existir la columna en esta pestaña)
+        integrantes = [
+            "JULIA MARISOL GARCÍA ALCARAZ",
+            "ISAAC IGNACIO GONZÁLEZ CRUZ",
+            "ANTONIO DE JESÚS RAMÍREZ",
+            "MARÍA FERNANDA SÁNCHEZ",
+            "CARLOS ALBERTO LÓPEZ"
+        ]
         return integrantes, talleres, df
     except Exception as e:
-        st.error(f"❌ Error al conectar con Google Sheets: {e}")
+        st.error(f"❌ Error al mapear las columnas del Google Sheet: {e}")
         st.stop()
 
-# Cargar la base de datos en tiempo real
+# Cargar datos en tiempo real
 lista_integrantes, lista_talleres, df_original = cargar_menus_y_datos()
 
+# Mapear los nombres de columna reales detectados en tu Sheets
 col_fecha = df_original.columns[0]
-col_asistencia = df_original.columns[1]
-col_taller = df_original.columns[2]
-col_horas = df_original.columns[3]
+col_taller = df_original.columns[1]
 
 # --- DISEÑO DEL ENCABEZADO ---
 col_logo_1, col_logo_2, col_logo_3 = st.columns(3)
@@ -56,9 +69,7 @@ with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=Fa
                 fecha_hoy = datetime.now().strftime("%d/%m/%Y")
                 nueva_fila_taller = {
                     col_fecha: fecha_hoy,
-                    col_asistencia: "ALTA DE TALLER SISTEMA",
-                    col_taller: nuevo_taller_input,
-                    col_horas: 0.00
+                    col_taller: nuevo_taller_input
                 }
                 df_actualizado_taller = pd.concat([df_original, pd.DataFrame([nueva_fila_taller])], ignore_index=True)
                 conn.update(data=df_actualizado_taller)
@@ -114,9 +125,7 @@ if boton_guardar:
             for integrante in presentes:
                 nueva_fila = {
                     col_fecha: fecha_formateada,
-                    col_asistencia: integrante,
-                    col_taller: taller,
-                    col_horas: float(horas)
+                    col_taller: taller
                 }
                 nuevos_registros.append(nueva_fila)
                 
@@ -132,7 +141,6 @@ if boton_guardar:
 
 st.markdown("---")
 st.markdown("### 📋 Historial de Asistencias (Últimos registros)")
-st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
+st.dataframe(df_original.tail(15), use_container_width=True)
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial - Mentes con Alas</a></p>", unsafe_allow_html=True)
-
