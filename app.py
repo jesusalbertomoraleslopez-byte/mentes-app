@@ -225,15 +225,27 @@ st.markdown("---")
 st.markdown("### 📋 Últimos Registros Guardados (Historial)")
 
 if not df_original.empty:
-    # 1. Preparar la descarga de la base de datos COMPLETA en memoria
+    try:
+        # 1. Crear una copia de los datos y ordenarla por fecha de forma ascendente
+        df_ordenado = df_original.copy()
+        # Convertir temporalmente a formato de fecha para ordenar correctamente
+        df_ordenado['FECHA_DATETIME'] = pd.to_datetime(df_ordenado[col_fecha], format="%d/%m/%Y", errors='coerce')
+        df_ordenado = df_ordenado.sort_values(by='FECHA_DATETIME', ascending=True)
+        # Eliminar la columna temporal antes de generar el Excel
+        df_ordenado = df_ordenado.drop(columns=['FECHA_DATETIME'])
+    except Exception:
+        # Si ocurre algún detalle con el formato, descarga los datos en su orden original
+        df_ordenado = df_original
+
+    # 2. Preparar la descarga de la base de datos COMPLETA y ordenada
     output_descarga = io.BytesIO()
     with pd.ExcelWriter(output_descarga, engine='openpyxl') as writer:
-        df_original.to_excel(writer, index=False)
+        df_ordenado.to_excel(writer, index=False)
     excel_completo_bytes = output_descarga.getvalue()
     
-    # 2. Botón institucional para descargar absolutamente TODO el archivo
+    # 3. Botón institucional para descargar todo el archivo ordenado
     st.download_button(
-        label="📥 Descargar Base de Datos Completa (Excel)",
+        label="📥 Descargar Base de Datos Completa (Excel Ordenado)",
         data=excel_completo_bytes,
         file_name=f"asistencia_completa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -242,10 +254,9 @@ if not df_original.empty:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 3. Mostrar solo las últimas 15 filas en la pantalla para no saturar la vista
+    # 4. Mostrar las últimas 15 filas en la pantalla (las más recientes arriba para la vista del usuario)
     st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial</a></p>", unsafe_allow_html=True)
-
