@@ -37,6 +37,42 @@ INTEGRANTES_FIJOS = [
     "TOMASITA MARÍA ENRIQUETA RIVERA DEL BOSQUE"
 ]
 
+# --- LISTA OFICIAL Y FIJA DE TALLERES / CURSOS ---
+TALLERES_FIJOS = [
+    "ACTIVIDAD FÍSICA Y DEPORTE",
+    "ALIMENTACIÓN Y NUTRICIÓN",
+    "ALTA DE TALLER SISTEMA",
+    "ARTE Y PINTURA",
+    "ARTES PLÁSTICAS",
+    "ASAMBLEA DE BIENVENIDA",
+    "ASISTENCIA SOCIAL Y COMUNITARIA",
+    "AUTOESTIMA Y DESARROLLO PERSONAL",
+    "AUTONOMÍA Y VIDA INDEPENDIENTE",
+    "BAILE Y EXPRESIÓN CORPORAL",
+    "CINE DEBATE Y REFLEXIÓN",
+    "COCINA Y REPOSTERÍA",
+    "COMPRENSIÓN LECTORA Y ESCRITURA",
+    "COMPUTACIÓN Y TECNOLOGÍA",
+    "COMUNICACIÓN Y LENGUAJE",
+    "CONVIVENCIA INSTITUCIONAL",
+    "CUIDADO PERSONAL E HIGIENE",
+    "DERECHOS HUMANOS E INCLUSIÓN",
+    "EXPRESIÓN EMOCIONAL Y PSICOLOGÍA",
+    "HABILIDADES COGNITIVAS",
+    "HABILIDADES SOCIALES",
+    "HUERTO Y JARDINERÍA",
+    "INGLÉS BÁSICO",
+    "LECTOESCRITURA",
+    "MANUALIDADES Y ARTESANÍAS",
+    "MATEMÁTICAS FUNCIONALES",
+    "MEDITACIÓN Y RELAJACIÓN",
+    "MÚSICA Y CANTO",
+    "ORIENTACIÓN ESPACIAL Y TIEMPO",
+    "PSICOMOTRICIDAD FINA Y GRUESA",
+    "SALIDAS RECREATIVAS Y CULTURALES",
+    "TEATRO Y DRAMATIZACIÓN"
+]
+
 # Conexión segura con GitHub usando Secrets
 def conectar_github():
     try:
@@ -59,11 +95,9 @@ def cargar_menus_y_datos():
         df = pd.DataFrame(columns=["FECHA", "INTEGRANTE / TALLER", "ACTIVIDAD", "HORAS"])
         sha = None
 
-    # Los integrantes se toman siempre de la lista fija del código
+    # Las listas de integrantes y talleres se toman de forma fija
     integrantes = INTEGRANTES_FIJOS
-    
-    # Los talleres se siguen extrayendo dinámicamente del archivo Excel
-    talleres = sorted(df.iloc[:, 2].dropna().astype(str).str.strip().unique())
+    talleres = sorted(list(set(TALLERES_FIJOS)))  # Asegurar orden y unicidad
     
     return integrantes, talleres, df, sha
 
@@ -88,10 +122,10 @@ def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
 lista_integrantes, lista_talleres, df_original, archivo_sha = cargar_menus_y_datos()
 
 # Mapear columnas de forma dinámica
-col_fecha = df_original.columns[0] if len(df_original.columns) > 0 else "FECHA"
-col_asistencia = df_original.columns[1] if len(df_original.columns) > 1 else "INTEGRANTE / TALLER"
-col_taller = df_original.columns[2] if len(df_original.columns) > 2 else "ACTIVIDAD"
-col_horas = df_original.columns[3] if len(df_original.columns) > 3 else "HORAS"
+col_fecha = df_original.columns if len(df_original.columns) > 0 else "FECHA"
+col_asistencia = df_original.columns if len(df_original.columns) > 1 else "INTEGRANTE / TALLER"
+col_taller = df_original.columns if len(df_original.columns) > 2 else "ACTIVIDAD"
+col_horas = df_original.columns if len(df_original.columns) > 3 else "HORAS"
 
 # --- ENCABEZADO VISUAL INSTITUCIONAL ---
 col_logo_1, col_logo_2, col_logo_3 = st.columns(3)
@@ -101,7 +135,7 @@ with col_logo_2:
 st.markdown("<h2 style='text-align: center; color: #1E3A8A; margin-top: 0px;'>Control de Asistencia Grupal</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# --- SECCIÓN A: AGREGAR UN TALLER NUEVO ---
+# --- SECCIÓN A: AGREGAR UN TALLER NUEVO (POR SI EN EL FUTURO NACE OTRO) ---
 with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=False):
     nuevo_taller_input = st.text_input("Nombre del nuevo taller:").strip().upper()
     boton_nuevo_taller = st.button("Guardar Taller Nuevo")
@@ -191,7 +225,7 @@ st.markdown("### 📋 Últimos Registros Guardados (Historial)")
 if not df_original.empty:
     st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 else:
-    st.info("💡 Aún no hay registros en la base de datos. Agrega un taller en la parte superior para comenzar.")
+    st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub. Haz tu primer registro para activarlo.")
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial</a></p>", unsafe_allow_html=True)
 
