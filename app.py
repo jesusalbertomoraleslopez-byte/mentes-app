@@ -55,6 +55,17 @@ st.markdown("""
             color: #0A2540 !important;
             font-weight: 500 !important;
         }
+        /* FORZAR COLOR ROJO EN ALERTAS DE ELIMINACIÓN PARA EVITAR FONDO NEGRO EN CELULARES */
+        div[data-testid="stNotification"] {
+            background-color: #FFEEEE !important;
+            border: 2px solid #E53E3E !important;
+            border-radius: 8px !important;
+        }
+        div[data-testid="stNotification"] p, div[data-testid="stNotification"] span, div[data-testid="stNotification"] li {
+            color: #9B1C1C !important;
+            font-weight: 700 !important;
+            font-size: 16px !important;
+        }
         /* Contenedor blanco de contraste para la lista de asistencia y borrado */
         .contenedor-asistencia {
             background-color: #FFFFFF !important;
@@ -361,7 +372,6 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                 
                 registros_a_eliminar = []
                 
-                # Forzar contenedor blanco de contraste para que las casillas resalten en el celular
                 st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
                 for idx, fila in df_dia.iterrows():
                     info_registro = f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]} ({fila[COL_HORAS]} hrs)"
@@ -370,9 +380,9 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                         registros_a_eliminar.append(idx)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 3. Procesar la eliminación de las casillas seleccionadas
+                # 3. Procesar la eliminación de las casillas seleccionadas (Usa estilos personalizados para ser visible)
                 if registros_a_eliminar:
-                    st.error(f"🚨 Has seleccionado {len(registros_a_eliminar)} registro(s) para ser eliminado(s) de forma permanente.")
+                    st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
                     boton_ejecutar_borrado = st.button("❌ Confirmar: Eliminar registros seleccionados")
                     
                     if boton_ejecutar_borrado:
@@ -400,3 +410,4 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
+
