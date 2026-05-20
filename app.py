@@ -10,6 +10,33 @@ st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", 
 EXCEL_FILE = "asistencia.xlsx"
 URL_LOGO = "logo-mentes.png"
 
+# --- LISTA OFICIAL Y FIJA DE INTEGRANTES ---
+INTEGRANTES_FIJOS = [
+    "ANA DE LOS ÁNGELES TORRES REVELES",
+    "CARLOS ALBERTO DE LA TORRE SANTELLANO",
+    "CRISTABEL DE LA CRUZ MALDONADO",
+    "EFRAÍN MAYNEZ PORRAS",
+    "FERNANDO ÁVILA BERLANGA",
+    "FLORINDA ESTEVANÉ PIZARRO",
+    "GUADALUPE LÓPEZ TOVAR",
+    "ISAAC IGNACIO GONZÁLEZ CRUZ",
+    "JESÚS ALEJANDRO SIFUENTES ESPINO",
+    "JESÚS SALCIDO ZAMORA",
+    "JOSE REYNALDO ALCORTA BENAVIDES",
+    "JUAN JOSÉ OCHOA GONZÁLEZ",
+    "JUAN RAFAEL YAÑEZ SERNA",
+    "JUAN SILVERIO LÓPEZ DE LA ROSA",
+    "KARLA LISSETTE PEDROZA GONZÁLEZ",
+    "LUIS FERNANDO ÁVILA BERLANGA",
+    "LUIS JAVIER GARCÍA MARTÍNEZ",
+    "MA. ELIZABETH GONZÁLEZ HIDROGO",
+    "MARÍA DE LOS ÁNGELES ORDUÑA RODRÍGUEZ",
+    "MARÍA GUADALUPE DE LA CONCEPCIÓN TORRES LIRA",
+    "PEDRO ANTONIO DE LA CERDA TREVIÑO",
+    "TERESITA DEL NIÑO JESÚS RODRÍGUEZ SALAZAR",
+    "TOMASITA MARÍA ENRIQUETA RIVERA DEL BOSQUE"
+]
+
 # Conexión segura con GitHub usando Secrets
 def conectar_github():
     try:
@@ -32,29 +59,25 @@ def cargar_menus_y_datos():
         df = pd.DataFrame(columns=["FECHA", "INTEGRANTE / TALLER", "ACTIVIDAD", "HORAS"])
         sha = None
 
-    # Limpiar y obtener valores únicos para los menús desplegables
-    integrantes = sorted(df.iloc[:, 1].dropna().astype(str).str.strip().unique())
+    # Los integrantes se toman siempre de la lista fija del código
+    integrantes = INTEGRANTES_FIJOS
+    
+    # Los talleres se siguen extrayendo dinámicamente del archivo Excel
     talleres = sorted(df.iloc[:, 2].dropna().astype(str).str.strip().unique())
     
-    if "ALTA DE TALLER SISTEMA" in integrantes:
-        integrantes.remove("ALTA DE TALLER SISTEMA")
-        
     return integrantes, talleres, df, sha
 
 def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
     repo = conectar_github()
     try:
-        # Convertir el DataFrame de Pandas a bytes de Excel
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df_nuevo.to_excel(writer, index=False)
         excel_bytes = output.getvalue()
 
         if sha_actual:
-            # Actualizar archivo existente
             repo.update_file(EXCEL_FILE, mensaje_commit, excel_bytes, sha_actual)
         else:
-            # Crear archivo si no existía
             repo.create_file(EXCEL_FILE, mensaje_commit, excel_bytes)
         return True
     except Exception as e:
@@ -168,6 +191,7 @@ st.markdown("### 📋 Últimos Registros Guardados (Historial)")
 if not df_original.empty:
     st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 else:
-    st.info("💡 Aún no hay registros en la base de datos. El archivo Excel se creará automáticamente en tu GitHub al guardar tu primer taller o asistencia.")
+    st.info("💡 Aún no hay registros en la base de datos. Agrega un taller en la parte superior para comenzar.")
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial</a></p>", unsafe_allow_html=True)
+
