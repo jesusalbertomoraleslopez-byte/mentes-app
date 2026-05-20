@@ -122,10 +122,11 @@ def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
 lista_integrantes, lista_talleres, df_original, archivo_sha = cargar_menus_y_datos()
 
 # Mapear columnas de forma dinámica
-col_fecha = df_original.columns if len(df_original.columns) > 0 else "FECHA"
-col_asistencia = df_original.columns if len(df_original.columns) > 1 else "INTEGRANTE / TALLER"
-col_taller = df_original.columns if len(df_original.columns) > 2 else "ACTIVIDAD"
-col_horas = df_original.columns if len(df_original.columns) > 3 else "HORAS"
+col_fecha = str(df_original.columns[0]) if len(df_original.columns) > 0 else "FECHA"
+col_asistencia = str(df_original.columns[1]) if len(df_original.columns) > 1 else "INTEGRANTE / TALLER"
+col_taller = str(df_original.columns[2]) if len(df_original.columns) > 2 else "ACTIVIDAD"
+col_horas = str(df_original.columns[3]) if len(df_original.columns) > 3 else "HORAS"
+
 
 # --- ENCABEZADO VISUAL INSTITUCIONAL ---
 col_logo_1, col_logo_2, col_logo_3 = st.columns(3)
