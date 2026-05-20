@@ -44,13 +44,18 @@ st.markdown("""
             background-color: #FFFFFF !important;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.02) !important;
         }
-        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS */
-        div[data-testid="stCheckbox"] label p {
+        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS Y EN EL PANEL DE BORRADO */
+        div[data-testid="stCheckbox"] label p, div[data-testid="stExpander"] div[data-testid="stCheckbox"] label p {
             color: #0A2540 !important;
             font-weight: 700 !important;
             font-size: 15px !important;
         }
-        /* Contenedor blanco de contraste para la lista de asistencia */
+        /* Asegurar que las etiquetas de texto descriptivo en el panel administrativo también sean visibles */
+        div[data-testid="stExpander"] p, div[data-testid="stExpander"] span {
+            color: #0A2540 !important;
+            font-weight: 500 !important;
+        }
+        /* Contenedor blanco de contraste para la lista de asistencia y borrado */
         .contenedor-asistencia {
             background-color: #FFFFFF !important;
             padding: 20px !important;
@@ -348,21 +353,18 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
             fecha_seleccionada = st.selectbox("1. Selecciona la fecha donde se encuentra el error:", fechas_unicas, key="fecha_eliminar_individual")
             
             # 2. Filtrar el DataFrame original para obtener solo los registros de esa fecha seleccionada
-            # Conservamos el índice original del DataFrame para saber exactamente qué fila borrar después
             df_dia = df_original[df_original[COL_FECHA] == fecha_seleccionada].copy()
             
             if not df_dia.empty:
                 st.markdown("### 2. Selecciona las casillas de las personas que deseas BORRAR:")
                 st.write("*(Los registros que dejes SIN MARCAR se conservarán intactos)*")
                 
-                # Diccionario temporal en session_state para guardar qué filas quiere borrar el usuario
                 registros_a_eliminar = []
                 
+                # Forzar contenedor blanco de contraste para que las casillas resalten en el celular
                 st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-                # Recorrer cada fila de ese día y mostrar un checkbox con el nombre e información del taller
                 for idx, fila in df_dia.iterrows():
                     info_registro = f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]} ({fila[COL_HORAS]} hrs)"
-                    # Si el usuario marca la casilla, guardamos el índice original de esa fila
                     marcado = st.checkbox(info_registro, value=False, key=f"del_{idx}")
                     if marcado:
                         registros_a_eliminar.append(idx)
@@ -374,10 +376,8 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                     boton_ejecutar_borrado = st.button("❌ Confirmar: Eliminar registros seleccionados")
                     
                     if boton_ejecutar_borrado:
-                        # Excluir de la base de datos original los índices seleccionados
                         df_resultado = df_original.drop(index=registros_a_eliminar)
                         
-                        # Sincronizar y actualizar el archivo Excel en GitHub
                         if guardar_en_github(df_resultado, archivo_sha, f"Admin: Eliminación de {len(registros_a_eliminar)} registros individuales del día {fecha_seleccionada}"):
                             st.success("🎉 ¡Los registros seleccionados han sido removidos con éxito de GitHub!")
                             st.rerun()
