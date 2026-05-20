@@ -4,11 +4,80 @@ from datetime import datetime
 from github import Github
 import io
 
-# Configuración de la pestaña del navegador
+# Configuración estética de la pestaña del navegador
 st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
 EXCEL_FILE = "asistencia.xlsx"
 URL_LOGO = "logo-mentes.png"
+
+# --- INYECTAR DISEÑO VISUAL INSPIRADO EN LA WEB OFICIAL ---
+st.markdown("""
+    <style>
+        /* Tipografía general y fondo limpio como la web */
+        html, body, [data-testid="stAppViewContainer"] {
+            background-color: #FAFAFA;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        /* Encabezado principal estilo institucional */
+        .titulo-web {
+            text-align: center; 
+            color: #0A2540; 
+            font-size: 32px; 
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .subtitulo-web {
+            text-align: center; 
+            color: #627D98; 
+            font-size: 16px; 
+            margin-bottom: 30px;
+        }
+        /* Estilo para los subtítulos de secciones */
+        h3 {
+            color: #0A2540 !important;
+            font-weight: 600 !important;
+        }
+        /* Tarjetas o contenedores tipo bloques de la web */
+        div[data-testid="stExpander"] {
+            border: 1px solid #E4E7EB !important;
+            border-radius: 8px !important;
+            background-color: #FFFFFF !important;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.02) !important;
+        }
+        /* Personalización de los botones principales (Azul Mentes con Alas) */
+        .stButton > button, div[data-testid="stForm"] button {
+            background-color: #0A2540 !important;
+            color: white !important;
+            border-radius: 6px !important;
+            border: none !important;
+            padding: 10px 24px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+        }
+        .stButton > button:hover, div[data-testid="stForm"] button:hover {
+            background-color: #1F3B5C !important;
+            box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
+            transform: translateY(-1px);
+        }
+        /* Inputs y Selectores limpios */
+        input, select, div[data-baseweb="select"] {
+            border-radius: 6px !important;
+        }
+        /* Pie de página institucional */
+        .footer-web {
+            text-align: center;
+            font-size: 13px;
+            color: #829AB1;
+            margin-top: 50px;
+            line-height: 1.6;
+        }
+        .footer-web a {
+            color: #0A2540 !important;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- LISTA OFICIAL Y FIJA DE INTEGRANTES ---
 INTEGRANTES_FIJOS = [
@@ -73,6 +142,12 @@ TALLERES_FIJOS = [
     "TEATRO Y DRAMATIZACIÓN"
 ]
 
+# Columnas definitivas para el archivo Excel
+COL_FECHA = "FECHA"
+COL_ASISTENCIA = "INTEGRANTE / TALLER"
+COL_TALLER = "ACTIVIDAD"
+COL_HORAS = "HORAS"
+
 # Conexión segura con GitHub usando Secrets
 def conectar_github():
     try:
@@ -86,19 +161,16 @@ def conectar_github():
 def cargar_menus_y_datos():
     repo = conectar_github()
     try:
-        # Intentar leer el archivo desde GitHub
         file_content = repo.get_contents(EXCEL_FILE)
         df = pd.read_excel(io.BytesIO(file_content.decoded_content))
         sha = file_content.sha
     except Exception:
-        # Si el archivo no existe, lo inicializa con las 4 columnas exactas
-        df = pd.DataFrame(columns=["FECHA", "INTEGRANTE / TALLER", "ACTIVIDAD", "HORAS"])
+        # Inicialización limpia con las columnas exactas como textos fijos
+        df = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha = None
 
-    # Las listas de integrantes y talleres se toman de forma fija
     integrantes = INTEGRANTES_FIJOS
-    talleres = sorted(list(set(TALLERES_FIJOS)))  # Asegurar orden y unicidad
-    
+    talleres = sorted(list(set(TALLERES_FIJOS)))
     return integrantes, talleres, df, sha
 
 def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
@@ -121,22 +193,15 @@ def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
 # Cargar datos iniciales
 lista_integrantes, lista_talleres, df_original, archivo_sha = cargar_menus_y_datos()
 
-# Mapear columnas de forma dinámica
-col_fecha = str(df_original.columns[0]) if len(df_original.columns) > 0 else "FECHA"
-col_asistencia = str(df_original.columns[1]) if len(df_original.columns) > 1 else "INTEGRANTE / TALLER"
-col_taller = str(df_original.columns[2]) if len(df_original.columns) > 2 else "ACTIVIDAD"
-col_horas = str(df_original.columns[3]) if len(df_original.columns) > 3 else "HORAS"
-
-
 # --- ENCABEZADO VISUAL INSTITUCIONAL ---
-col_logo_1, col_logo_2, col_logo_3 = st.columns(3)
+col_logo_1, col_logo_2, col_logo_3 = st.columns([1, 1.2, 1])
 with col_logo_2:
     st.image(URL_LOGO, use_container_width=True)
 
-st.markdown("<h2 style='text-align: center; color: #1E3A8A; margin-top: 0px;'>Control de Asistencia Grupal</h2>", unsafe_allow_html=True)
-st.markdown("---")
+st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
-# --- SECCIÓN A: AGREGAR UN TALLER NUEVO (POR SI EN EL FUTURO NACE OTRO) ---
+# --- SECCIÓN A: AGREGAR UN TALLER NUEVO ---
 with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=False):
     nuevo_taller_input = st.text_input("Nombre del nuevo taller:").strip().upper()
     boton_nuevo_taller = st.button("Guardar Taller Nuevo")
@@ -149,10 +214,10 @@ with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=Fa
         else:
             fecha_hoy = datetime.now().strftime("%d/%m/%Y")
             nueva_fila_taller = {
-                col_fecha: fecha_hoy, 
-                col_asistencia: "ALTA DE TALLER SISTEMA", 
-                col_taller: nuevo_taller_input, 
-                col_horas: 0.00
+                COL_FECHA: fecha_hoy, 
+                COL_ASISTENCIA: "ALTA DE TALLER SISTEMA", 
+                COL_TALLER: nuevo_taller_input, 
+                COL_HORAS: 0.00
             }
             df_actualizado_taller = pd.concat([df_original, pd.DataFrame([nueva_fila_taller])], ignore_index=True)
             
@@ -160,7 +225,7 @@ with st.expander("➕ ¿Deseas agregar un TALLER NUEVO a la lista?", expanded=Fa
                 st.success(f"✨ ¡Taller '{nuevo_taller_input}' guardado en GitHub!")
                 st.rerun()
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # --- SECCIÓN B: FORMULARIO DE ASISTENCIA GRUPAL ---
 with st.form("formulario_grupal"):
@@ -205,10 +270,10 @@ if boton_guardar:
         
         for integrante in presentes:
             nueva_fila = {
-                col_fecha: fecha_formateada, 
-                col_asistencia: integrante, 
-                col_taller: taller, 
-                col_horas: float(horas)
+                COL_FECHA: fecha_formateada, 
+                COL_ASISTENCIA: integrante, 
+                COL_TALLER: taller, 
+                COL_HORAS: float(horas)
             }
             nuevos_registros.append(nueva_fila)
             
@@ -226,24 +291,18 @@ st.markdown("### 📋 Últimos Registros Guardados (Historial)")
 
 if not df_original.empty:
     try:
-        # 1. Crear una copia de los datos y ordenarla por fecha de forma ascendente
         df_ordenado = df_original.copy()
-        # Convertir temporalmente a formato de fecha para ordenar correctamente
-        df_ordenado['FECHA_DATETIME'] = pd.to_datetime(df_ordenado[col_fecha], format="%d/%m/%Y", errors='coerce')
+        df_ordenado['FECHA_DATETIME'] = pd.to_datetime(df_ordenado[COL_FECHA], format="%d/%m/%Y", errors='coerce')
         df_ordenado = df_ordenado.sort_values(by='FECHA_DATETIME', ascending=True)
-        # Eliminar la columna temporal antes de generar el Excel
         df_ordenado = df_ordenado.drop(columns=['FECHA_DATETIME'])
     except Exception:
-        # Si ocurre algún detalle con el formato, descarga los datos en su orden original
         df_ordenado = df_original
 
-    # 2. Preparar la descarga de la base de datos COMPLETA y ordenada
     output_descarga = io.BytesIO()
     with pd.ExcelWriter(output_descarga, engine='openpyxl') as writer:
         df_ordenado.to_excel(writer, index=False)
     excel_completo_bytes = output_descarga.getvalue()
     
-    # 3. Botón institucional para descargar todo el archivo ordenado
     st.download_button(
         label="📥 Descargar Base de Datos Completa (Excel Ordenado)",
         data=excel_completo_bytes,
@@ -253,10 +312,17 @@ if not df_original.empty:
     )
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 4. Mostrar las últimas 15 filas en la pantalla (las más recientes arriba para la vista del usuario)
     st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
-st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial</a></p>", unsafe_allow_html=True)
+# --- PIE DE PÁGINA INSTITUCIONAL ---
+st.markdown("""
+    <div class="footer-web">
+        <hr>
+        Av. Ocampo 1797 ote. C.P. 27000, Col. Centro Torreón, Coah.<br>
+        <b>MENTES CON ALAS ES DONATARIA AUTORIZADA</b><br>
+        <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
+    </div>
+""", unsafe_allow_html=True)
+
