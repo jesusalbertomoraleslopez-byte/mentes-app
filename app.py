@@ -44,7 +44,7 @@ st.markdown("""
             background-color: #FFFFFF !important;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.02) !important;
         }
-        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS (Especial para Celulares) */
+        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS */
         div[data-testid="stCheckbox"] label p {
             color: #0A2540 !important;
             font-weight: 700 !important;
@@ -162,6 +162,7 @@ COL_FECHA = "FECHA"
 COL_ASISTENCIA = "INTEGRANTE / TALLER"
 COL_TALLER = "ACTIVIDAD"
 COL_HORAS = "HORAS"
+CLAVE_BORRADO = "LupitaMentes1978"
 
 # Conexión segura con GitHub usando Secrets
 def conectar_github():
@@ -260,7 +261,6 @@ with st.form("formulario_grupal"):
         
     integrantes_filtrados = [n for n in lista_integrantes if buscar_nombre in n] if buscar_nombre else lista_integrantes
 
-    # Envolver la cuadrícula de checkboxes en una tarjeta blanca de alto contraste
     st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
     col_izq, col_der = st.columns(2)
     for i, nombre in enumerate(integrantes_filtrados):
@@ -333,6 +333,25 @@ if not df_original.empty:
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
+# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR BASE DE DATOS) ---
+st.markdown("<br>", unsafe_allow_html=True)
+with st.expander("🚨 Panel de Administración - Borrado del Historial", expanded=False):
+    st.write("Esta acción eliminará de forma definitiva todos los registros acumulados en el archivo Excel de GitHub.")
+    clave_input = st.text_input("Ingresa la clave de autorización:", type="password")
+    
+    if clave_input == CLAVE_BORRADO:
+        st.warning("⚠️ Clave correcta. El botón de abajo borrará de manera irreversible toda la base de datos.")
+        boton_borrar_total = st.button("🗑️ Confirmar Borrado Absoluto del Historial")
+        
+        if boton_borrar_total:
+            # Crear un DataFrame vacío respetando las 4 columnas de la estructura
+            df_vacio = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
+            if guardar_en_github(df_vacio, archivo_sha, "Admin: Reset completo de la base de datos"):
+                st.success("🎉 ¡La base de datos ha sido borrada y reiniciada con éxito!")
+                st.rerun()
+    elif clave_input != "":
+        st.error("❌ Clave incorrecta. No tienes autorización para realizar esta acción.")
+
 # --- PIE DE PÁGINA INSTITUCIONAL ---
 st.markdown("""
     <div class="footer-web">
@@ -342,3 +361,4 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
+
