@@ -90,21 +90,6 @@ st.markdown("""
             box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
             transform: translateY(-1px);
         }
-        
-        /* 🚨 CONTROL ABSOLUTO PARA EL BOTÓN DE CONFIRMACIÓN DE BORRADO EN CELULARES 🚨 */
-        div.elemento-borrado button {
-            background-color: #D32F2F !important; /* Rojo Alerta Intenso */
-            color: #FFFFFF !important;
-            border: none !important;
-            width: 100% !important;
-        }
-        div.elemento-borrado button p, div.elemento-borrado button span {
-            color: #FFFFFF !important;
-            font-weight: 800 !important;
-            font-size: 16px !important;
-            text-transform: uppercase !important;
-        }
-        
         /* Inputs y Selectores limpios */
         input, select, div[data-baseweb="select"] {
             border-radius: 6px !important;
@@ -121,6 +106,24 @@ st.markdown("""
             color: #0A2540 !important;
             text-decoration: none;
             font-weight: bold;
+        }
+        /* 🚨 BOTÓN HTML PERSONALIZADO ANTIBLOQUEO MODO OSCURO 🚨 */
+        .boton-borrado-html {
+            background-color: #FFFFFF !important;
+            color: #D32F2F !important;
+            border: 3px solid #D32F2F !important;
+            padding: 14px 20px !important;
+            text-align: center !important;
+            text-decoration: none !important;
+            display: inline-block !important;
+            font-size: 16px !important;
+            font-weight: 800 !important;
+            margin: 4px 2px !important;
+            cursor: pointer !important;
+            border-radius: 8px !important;
+            width: 100% !important;
+            text-transform: uppercase !important;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.1) !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -399,14 +402,14 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                 if registros_a_eliminar:
                     st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
                     
-                    # Envolvemos este botón crítico en un contenedor CSS especial para celulares
-                    st.markdown('<div class="elemento-borrado">', unsafe_allow_html=True)
-                    boton_ejecutar_borrado = st.button("CONFIRMAR ELIMINACIÓN DE REGISTROS", key="btn_ejecutar_borrado_final")
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    # Usamos una casilla de confirmación nativa para disparar la acción del botón HTML
+                    confirmar_clic_html = st.checkbox("👉 Marca esta casilla para activar el botón de guardado permanente", value=False, key="check_activar_html")
                     
-                    if boton_ejecutar_borrado:
+                    # Pintamos el botón HTML nativo para romper la inversión de colores del celular
+                    st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
+                    
+                    if confirmar_clic_html:
                         df_resultado = df_original.drop(index=registros_a_eliminar)
-                        
                         if guardar_en_github(df_resultado, archivo_sha, f"Admin: Eliminación de {len(registros_a_eliminar)} registros individuales del día {fecha_seleccionada}"):
                             st.success("🎉 ¡Los registros seleccionados han sido removidos con éxito de GitHub!")
                             st.rerun()
@@ -429,3 +432,4 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
+
