@@ -44,6 +44,21 @@ st.markdown("""
             background-color: #FFFFFF !important;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.02) !important;
         }
+        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS (Especial para Celulares) */
+        div[data-testid="stCheckbox"] label p {
+            color: #0A2540 !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+        }
+        /* Contenedor blanco de contraste para la lista de asistencia */
+        .contenedor-asistencia {
+            background-color: #FFFFFF !important;
+            padding: 20px !important;
+            border-radius: 8px !important;
+            border: 1px solid #E4E7EB !important;
+            margin-top: 15px !important;
+            margin-bottom: 15px !important;
+        }
         /* Personalización de los botones principales (Azul Mentes con Alas) */
         .stButton > button, div[data-testid="stForm"] button {
             background-color: #0A2540 !important;
@@ -165,7 +180,6 @@ def cargar_menus_y_datos():
         df = pd.read_excel(io.BytesIO(file_content.decoded_content))
         sha = file_content.sha
     except Exception:
-        # Inicialización limpia con las columnas exactas como textos fijos
         df = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha = None
 
@@ -246,6 +260,8 @@ with st.form("formulario_grupal"):
         
     integrantes_filtrados = [n for n in lista_integrantes if buscar_nombre in n] if buscar_nombre else lista_integrantes
 
+    # Envolver la cuadrícula de checkboxes en una tarjeta blanca de alto contraste
+    st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
     col_izq, col_der = st.columns(2)
     for i, nombre in enumerate(integrantes_filtrados):
         valor_previo = st.session_state.asistencia_estados.get(nombre, True)
@@ -255,6 +271,7 @@ with st.form("formulario_grupal"):
         else:
             with col_der:
                 st.session_state.asistencia_estados[nombre] = st.checkbox(nombre, value=valor_previo, key=f"chk_{nombre}")
+    st.markdown('</div>', unsafe_allow_html=True)
                 
     st.markdown("---")
     boton_guardar = st.form_submit_button("💾 Registrar Asistencia del Grupo")
@@ -325,4 +342,3 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
-
