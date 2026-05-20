@@ -90,11 +90,21 @@ st.markdown("""
             box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
             transform: translateY(-1px);
         }
-        /* 🚨 REGLA CRÍTICA NUEVA: FORZAR TEXTO BLANCO INTEGRAL DENTRO DE LOS BOTONES EN EL CELULAR 🚨 */
-        div[data-testid="stBlock"] button p, div.stButton button span {
+        
+        /* 🚨 CONTROL ABSOLUTO PARA EL BOTÓN DE CONFIRMACIÓN DE BORRADO EN CELULARES 🚨 */
+        div.elemento-borrado button {
+            background-color: #D32F2F !important; /* Rojo Alerta Intenso */
             color: #FFFFFF !important;
-            font-weight: 700 !important;
+            border: none !important;
+            width: 100% !important;
         }
+        div.elemento-borrado button p, div.elemento-borrado button span {
+            color: #FFFFFF !important;
+            font-weight: 800 !important;
+            font-size: 16px !important;
+            text-transform: uppercase !important;
+        }
+        
         /* Inputs y Selectores limpios */
         input, select, div[data-baseweb="select"] {
             border-radius: 6px !important;
@@ -388,7 +398,11 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                 # 3. Procesar la eliminación de las casillas seleccionadas
                 if registros_a_eliminar:
                     st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
-                    boton_ejecutar_borrado = st.button("❌ Confirmar: Eliminar registros seleccionados")
+                    
+                    # Envolvemos este botón crítico en un contenedor CSS especial para celulares
+                    st.markdown('<div class="elemento-borrado">', unsafe_allow_html=True)
+                    boton_ejecutar_borrado = st.button("CONFIRMAR ELIMINACIÓN DE REGISTROS", key="btn_ejecutar_borrado_final")
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     if boton_ejecutar_borrado:
                         df_resultado = df_original.drop(index=registros_a_eliminar)
