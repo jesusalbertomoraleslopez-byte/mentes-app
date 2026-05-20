@@ -90,6 +90,11 @@ st.markdown("""
             box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
             transform: translateY(-1px);
         }
+        /* 🚨 REGLA CRÍTICA NUEVA: FORZAR TEXTO BLANCO INTEGRAL DENTRO DE LOS BOTONES EN EL CELULAR 🚨 */
+        div[data-testid="stBlock"] button p, div.stButton button span {
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+        }
         /* Inputs y Selectores limpios */
         input, select, div[data-baseweb="select"] {
             border-radius: 6px !important;
@@ -380,7 +385,7 @@ with st.expander("🚨 Panel de Administración - Borrado Específico por Person
                         registros_a_eliminar.append(idx)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 3. Procesar la eliminación de las casillas seleccionadas (Usa estilos personalizados para ser visible)
+                # 3. Procesar la eliminación de las casillas seleccionadas
                 if registros_a_eliminar:
                     st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
                     boton_ejecutar_borrado = st.button("❌ Confirmar: Eliminar registros seleccionados")
@@ -410,4 +415,3 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
-
