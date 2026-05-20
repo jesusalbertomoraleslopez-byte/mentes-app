@@ -223,10 +223,29 @@ if boton_guardar:
 # --- SECCIÓN C: HISTORIAL VISUAL EN TIEMPO REAL ---
 st.markdown("---")
 st.markdown("### 📋 Últimos Registros Guardados (Historial)")
+
 if not df_original.empty:
+    # 1. Preparar la descarga de la base de datos COMPLETA en memoria
+    output_descarga = io.BytesIO()
+    with pd.ExcelWriter(output_descarga, engine='openpyxl') as writer:
+        df_original.to_excel(writer, index=False)
+    excel_completo_bytes = output_descarga.getvalue()
+    
+    # 2. Botón institucional para descargar absolutamente TODO el archivo
+    st.download_button(
+        label="📥 Descargar Base de Datos Completa (Excel)",
+        data=excel_completo_bytes,
+        file_name=f"asistencia_completa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 3. Mostrar solo las últimas 15 filas en la pantalla para no saturar la vista
     st.dataframe(df_original.tail(15).iloc[::-1], use_container_width=True)
 else:
-    st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub. Haz tu primer registro para activarlo.")
+    st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
 st.markdown("<br><hr><p style='text-align: center;'><a href='https://mentesconalas.org.mx' target='_blank'>🌐 Visitar sitio web oficial</a></p>", unsafe_allow_html=True)
 
