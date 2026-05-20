@@ -8,7 +8,7 @@ import io
 st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
 EXCEL_FILE = "asistencia.xlsx"
-URL_LOGO = "https://mentesconalas.org.mx"
+URL_LOGO = "logo-mentes.png"
 
 # Conexión segura con GitHub usando Secrets
 def conectar_github():
