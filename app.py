@@ -333,22 +333,53 @@ if not df_original.empty:
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
-# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR BASE DE DATOS) ---
+# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR REGISTROS FILTRADOS) ---
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("🚨 Panel de Administración - Borrado del Historial", expanded=False):
-    st.write("Esta acción eliminará de forma definitiva todos los registros acumulados en el archivo Excel de GitHub.")
-    clave_input = st.text_input("Ingresa la clave de autorización:", type="password")
+    st.write("Esta acción eliminará registros acumulados en el archivo Excel de GitHub según el filtro seleccionado.")
+    clave_input = st.text_input("Ingresa la clave de autorización:", type="password", key="clave_borrar")
     
     if clave_input == CLAVE_BORRADO:
-        st.warning("⚠️ Clave correcta. El botón de abajo borrará de manera irreversible toda la base de datos.")
-        boton_borrar_total = st.button("🗑️ Confirmar Borrado Absoluto del Historial")
+        st.warning("⚠️ Clave correcta. Selecciona el tipo de borrado que deseas realizar.")
         
-        if boton_borrar_total:
-            # Crear un DataFrame vacío respetando las 4 columnas de la estructura
-            df_vacio = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
-            if guardar_en_github(df_vacio, archivo_sha, "Admin: Reset completo de la base de datos"):
-                st.success("🎉 ¡La base de datos ha sido borrada y reiniciada con éxito!")
-                st.rerun()
+        if not df_original.empty:
+            # Obtener todas las fechas únicas registradas en la base de datos
+            fechas_unicas = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
+            
+            # Menú desplegable con las opciones de eliminación
+            opcion_borrado = st.selectbox(
+                "¿Qué registros deseas eliminar?",
+                ["-- Selecciona una opción --", "Borrar un DÍA específico", "Borrar TODO el historial completo"]
+            )
+            
+            if opcion_borrado == "Borrar un DÍA específico":
+                # Si elige un día, se despliega un segundo menú con las fechas reales del Excel
+                fecha_a_borrar = st.selectbox("Selecciona la fecha que deseas eliminar por completo:", fechas_unicas)
+                
+                # Contar cuántas filas se van a borrar
+                total_filas_dia = len(df_original[df_original[COL_FECHA] == fecha_a_borrar])
+                st.info(f"💡 Se eliminarán {total_filas_dia} registros correspondientes al día {fecha_a_borrar}.")
+                
+                boton_confirmar_dia = st.button("❌ Confirmar: Eliminar registros de este día")
+                if boton_confirmar_dia:
+                    # Conservar solo las filas que NO sean de esa fecha
+                    df_filtrado = df_original[df_original[COL_FECHA] != fecha_a_borrar]
+                    if guardar_en_github(df_filtrado, archivo_sha, f"Admin: Borrado de registros del día {fecha_a_borrar}"):
+                        st.success(f"🎉 ¡Registros del día {fecha_a_borrar} eliminados con éxito!")
+                        st.rerun()
+                        
+            elif opcion_borrado == "Borrar TODO el historial completo":
+                st.error("🚨 ATENCIÓN: Esta opción vaciará por completo tu base de datos de forma irreversible.")
+                boton_borrar_total = st.button("🗑️ Confirmar: Borrado Absoluto e Irreversible")
+                
+                if boton_borrar_total:
+                    df_vacio = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
+                    if guardar_en_github(df_vacio, archivo_sha, "Admin: Reset completo de la base de datos"):
+                        st.success("🎉 ¡La base de datos ha sido reiniciada por completo!")
+                        st.rerun()
+        else:
+            st.info("💡 No hay registros guardados en la base de datos para borrar.")
+            
     elif clave_input != "":
         st.error("❌ Clave incorrecta. No tienes autorización para realizar esta acción.")
 
@@ -361,4 +392,5 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
+
 
