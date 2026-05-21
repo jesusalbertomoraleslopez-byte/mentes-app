@@ -127,7 +127,7 @@ with col_logo_2:
 st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
-# 🚨 PESTAÑAS DE NAVEGACIÓN SUPERIOR MODALIDAD HÍBRIDA RESPONSIVA 🚨
+# 🚨 PESTAÑAS DE NAVEGACIÓN SUPERIOR: OPTIMIZADO PARA MÓVILES 🚨
 tab_asistencia, tab_calendario = st.tabs(["📊 REGISTRO DE ASISTENCIA", "📅 CALENDARIO MENSUAL DE ACTIVIDADES"])
 
 # ==========================================
@@ -181,9 +181,9 @@ with tab_asistencia:
             
             df_bloque_especifico = df_m_dia[df_m_dia['BLOQUE'] == m_bloque]
             if not df_bloque_especifico.empty:
-                taller_m = df_bloque_especifico[COL_TALLER].iloc[0]
-                horas_m = df_bloque_especifico[COL_HORAS].iloc[0]
-                horario_m = df_bloque_especifico["HORARIO"].iloc[0]
+                taller_m = df_bloque_especifico[COL_TALLER].iloc
+                horas_m = df_bloque_especifico[COL_HORAS].iloc
+                horario_m = df_bloque_especifico["HORARIO"].iloc
                 alumnos_citados_actualmente = df_bloque_especifico[COL_ASISTENCIA].dropna().tolist()
                 
                 st.markdown("### 3. Modifica la lista:")
@@ -225,9 +225,9 @@ with tab_asistencia:
             bloque_seleccionado = st.selectbox("📋 Selecciona la actividad a evaluar:", bloques_disp)
             
             df_citados_hoy = df_dia_completo[df_dia_completo['BLOQUE_UNICO'] == bloque_seleccionado]
-            taller_p = df_citados_hoy[COL_TALLER].iloc[0]
-            horas_p = df_citados_hoy[COL_HORAS].iloc[0]
-            horario_p = df_citados_hoy["HORARIO"].iloc[0]
+            taller_p = df_citados_hoy[COL_TALLER].iloc
+            horas_p = df_citados_hoy[COL_HORAS].iloc
+            horario_p = df_citados_hoy["HORARIO"].iloc
             act_con_h = f"{taller_p} ({horario_p})"
             
             st.success(f"📚 Bloque Activo: **{taller_p}** de **{horario_p}** ({horas_p} horas)")
@@ -324,6 +324,7 @@ with tab_calendario:
     st.markdown("### 🗓️ Agenda Mensual de Actividades")
     st.write("Navega por los meses del año para revisar las planificaciones cargadas en el archivo de Excel:")
     
+    # Controles de mes y año
     hoy = datetime.now()
     c_m1, c_m2 = st.columns(2)
     with c_m1:
@@ -333,9 +334,11 @@ with tab_calendario:
     with c_m2:
         anio_sel = st.selectbox("Ver Año:", [hoy.year, hoy.year + 1], index=0)
         
+    # Construcción de la matriz mensual nativa
     cal_objeto = calendar.Calendar(firstweekday=0)
     semanas_matriz = cal_objeto.monthdayscalendar(anio_sel, mes_num)
     
+    # Mapear los eventos guardados en el Excel de planificación
     diccionario_eventos = {}
     if not df_calendario.empty:
         df_unicos_cal = df_calendario.drop_duplicates(subset=[COL_FECHA, COL_TALLER, "HORARIO"])
@@ -349,6 +352,7 @@ with tab_calendario:
                     diccionario_eventos[dia_key].append(f"<b>{fila[COL_TALLER]}</b><br>⏱️ {fila['HORARIO']}")
             except: pass
 
+    # Código HTML responsivo para móviles de la tabla
     html_codigo = f"<table class='tabla-calendario'>"
     html_codigo += "<tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>"
     
