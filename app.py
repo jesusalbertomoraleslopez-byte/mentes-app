@@ -277,10 +277,9 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (OPCIONAL)", ex
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL (CON OPCIÓN DIRECTA) ---
+# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL ---
 st.markdown("### 📝 2. REALIZAR PASE DE LISTA REAL")
 
-# Selector del método de pase de lista
 metodo_registro = st.radio(
     "¿Cómo deseas pasar asistencia hoy?",
     ["A partir de lo Programado en Calendario", "Registrar Actividad Directa (Sin Programar)"],
@@ -289,22 +288,35 @@ metodo_registro = st.radio(
 
 fecha_lista_buscar = st.date_input("Selecciona la fecha de la actividad:", datetime.now()).strftime("%d/%m/%Y")
 
-# MODALIDAD 1: BASADO EN EL CALENDARIO
+# MODALIDAD 1: BASADO EN EL CALENDARIO (CORREGIDA PARA SEPARAR MÚLTIPLES ACTIVIDADES POR DÍA)
 if metodo_registro == "A partir de lo Programado en Calendario":
-    df_citados_hoy = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar]
+    df_dia_completo = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar]
     
-    if df_citados_hoy.empty:
+    if df_dia_completo.empty:
         st.info(f"💡 No hay ninguna actividad agendada en el calendario para el día {fecha_lista_buscar}. Cambia la opción de arriba a 'Actividad Directa' para pasar lista sin planeación.")
     else:
+        # Generar una combinación de Texto Único para identificar cada bloque independiente (Taller + Horario)
+        df_dia_completo['BLOQUE_UNICO'] = df_dia_completo[COL_TALLER].astype(str) + " (" + df_dia_completo["HORARIO"].astype(str) + ")"
+        bloques_disponibles = sorted(df_dia_completo['BLOQUE_UNICO'].unique().tolist())
+        
+        # 🚨 MEJORA CRÍTICA: SEPARADOR DINÁMICO DE ACTIVIDADES DEL DÍA 🚨
+        bloque_seleccionado = st.selectbox(
+            "📋 Selecciona la actividad específica que vas a evaluar en este momento:",
+            bloques_disponibles,
+            key="selector_bloque_activo"
+        )
+        
+        # Filtrar los alumnos pertenecientes EXCLUSIVAMENTE al bloque seleccionado
+        df_citados_hoy = df_dia_completo[df_dia_completo['BLOQUE_UNICO'] == bloque_seleccionado]
+        
         taller_programado = df_citados_hoy[COL_TALLER].iloc[0]
         horas_programadas = df_citados_hoy[COL_HORAS].iloc[0]
-        horario_programado = df_citados_hoy["HORARIO"].iloc[0] if "HORARIO" in df_citados_hoy.columns else ""
+        horario_programado = df_citados_hoy["HORARIO"].iloc[0]
         
-        actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
-        st.success(f"📚 Taller Citado en Calendario: **{actividad_con_horario}** ({horas_programadas} horas)")
+        st.success(f"📚 Bloque Activo: **{taller_programado}** de **{horario_programado}** ({horas_programadas} horas)")
         
         with st.form("formulario_asistencia_real_cal"):
-            st.write("📋 **Lista basada en calendario:** Las casillas muestran solo a los citados. **Desmarca a quien haya faltado**.")
+            st.write("📋 **Lista de asistencia inteligente:** Seleccionados únicamente los citados para este horario. **Desmarca a quien haya faltado**.")
             
             st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
             col_r_izq, col_r_der = st.columns(2)
@@ -320,7 +332,7 @@ if metodo_registro == "A partir de lo Programado en Calendario":
                         pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_c_{idx}")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            boton_guardar_asistencia_cal = st.form_submit_button("💾 Guardar Asistencia (Calendario)")
+            boton_guardar_asistencia_cal = st.form_submit_button("💾 Guardar Asistencia de este Bloque")
 
         if boton_guardar_asistencia_cal:
             asistentes_reales = [nombre for nombre, asistio in pase_lista_checks.items() if asistio]
@@ -328,6 +340,7 @@ if metodo_registro == "A partir de lo Programado en Calendario":
                 st.warning("⚠️ Debes registrar al menos una asistencia.")
             else:
                 nuevos_registros_asistencia = []
+                actividad_con_horario = f"{taller_programado} ({horario_programado})"
                 for integrante in asistentes_reales:
                     nuevos_registros_asistencia.append({
                         COL_FECHA: fecha_lista_buscar,
@@ -340,7 +353,7 @@ if metodo_registro == "A partir de lo Programado en Calendario":
                     st.success(f"🎉 ¡Éxito! Se han guardado {len(asistentes_reales)} asistencias en {EXCEL_FILE}.")
                     st.rerun()
 
-# MODALIDAD 2: REGISTRO DIRECTO TRADICIONAL (COMO ANTES)
+# MODALIDAD 2: REGISTRO DIRECTO TRADICIONAL
 else:
     with st.form("formulario_asistencia_real_directa"):
         col_d1, col_d2 = st.columns(2)
@@ -353,7 +366,6 @@ else:
         st.markdown("### 📋 Lista de Todos los Integrantes")
         st.write("*(Por defecto todos están marcados. Desmarca a los que no asistieron hoy)*")
         
-        # Filtro de búsqueda rápido por nombre
         buscar_nombre_dir = st.text_input("🔍 Buscar integrante por nombre:").strip().upper()
         integrantes_filtrados_dir = [n for n in INTEGRANTES_FIJOS if buscar_nombre_dir in n] if buscar_nombre_dir else INTEGRANTES_FIJOS
         
