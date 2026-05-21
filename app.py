@@ -107,7 +107,7 @@ def guardar_archivo_github(nombre_archivo, df_nuevo, sha_actual, mensaje_commit)
             repo.create_file(nombre_archivo, mensaje_commit, output.getvalue())
         return True
     except Exception as e:
-        st.error(f"❌ Error al guardar {nombre_archivo}: {e}")
+        st.error(f"❌ Error al guardar {nombre_archivo} en GitHub: {e}")
         return False
 
 # --- LOGOTIPO Y ENCABEZADOS ---
@@ -152,50 +152,54 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (NUEVO)", expan
             if guardar_archivo_github(CALENDARIO_FILE, df_n_cal, sha_calendario, f"Agenda: {p_taller}"):
                 st.success("✨ ¡Guardado con éxito!"); st.rerun()
 
-# --- SECCIÓN B: MODIFICAR AGNDA DEL CALENDARIO (SIN CONTRASEÑA) ---
+# --- SECCIÓN B: MODIFICAR AGENDA DEL CALENDARIO (CORREGIDA SIN CAÍDAS) ---
 with st.expander("✏️ MODIFICAR O CORREGIR AGENDA DEL CALENDARIO (AÑADIR/QUITAR PERSONAS)", expanded=False):
     st.write("Usa esta sección para agregar nuevos alumnos o retirar personas de un taller ya agendado.")
     if not df_calendario.empty:
-        fechas_cal = sorted(df_calendario[COL_FECHA].unique().tolist(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
+        fechas_cal = sorted(df_calendario[COL_FECHA].dropna().unique().tolist(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
         m_fecha = st.selectbox("1. Elige la fecha que deseas corregir:", fechas_cal, key="m_fecha_sel")
         
         df_m_dia = df_calendario[df_calendario[COL_FECHA] == m_fecha].copy()
+        
+        # 🚨 SOLUCIÓN AL ERROR TYPEERROR: Evitamos nulos al fusionar textos del bloque 🚨
         df_m_dia['BLOQUE'] = df_m_dia[COL_TALLER].astype(str) + " (" + df_m_dia["HORARIO"].astype(str) + ")"
-        bloques_m = sorted(df_m_dia['BLOQUE'].unique().tolist())
+        bloques_m = sorted(df_m_dia['BLOQUE'].dropna().unique().tolist())
         m_bloque = st.selectbox("2. Elige la actividad específica a modificar:", bloques_m, key="m_bloque_sel")
         
         df_bloque_especifico = df_m_dia[df_m_dia['BLOQUE'] == m_bloque]
-        taller_m = df_bloque_especifico[COL_TALLER].iloc[0]
-        horas_m = df_bloque_especifico[COL_HORAS].iloc[0]
-        horario_m = df_bloque_especifico["HORARIO"].iloc[0]
         
-        alumnos_citados_actualmente = df_bloque_especifico[COL_ASISTENCIA].tolist()
-        
-        st.markdown("### 3. Modifica la lista (Marca para añadir, desmarca para quitar):")
-        st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-        col_m_izq, col_m_der = st.columns(2)
-        nuevos_estados_cal = {}
-        for i, nombre in enumerate(INTEGRANTES_FIJOS):
-            ya_citado = nombre in alumnos_citados_actualmente
-            with col_m_izq if i % 2 == 0 else col_m_der:
-                nuevos_estados_cal[nombre] = st.checkbox(nombre, value=ya_citado, key=f"mod_c_{nombre}")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        boton_modificar_agenda = st.button("💾 Guardar Cambios en la Agenda del Calendario")
-        if boton_modificar_agenda:
-            alumnos_finales = [n for n, c in nuevos_estados_cal.items() if c]
-            df_cal_limpio = df_calendario[~((df_calendario[COL_FECHA] == m_fecha) & 
-                                            (df_calendario[COL_TALLER] == taller_m) & 
-                                            (df_calendario["HORARIO"] == horario_m))]
+        if not df_bloque_especifico.empty:
+            taller_m = df_bloque_especifico[COL_TALLER].iloc[0]
+            horas_m = df_bloque_especifico[COL_HORAS].iloc[0]
+            horario_m = df_bloque_especifico["HORARIO"].iloc[0]
             
-            if alumnos_finales:
-                nuevas_filas_m = [{COL_FECHA: m_fecha, COL_ASISTENCIA: n, COL_TALLER: taller_m, COL_HORAS: float(horas_m), "HORARIO": horario_m} for n in alumnos_finales]
-                df_cal_finalizado = pd.concat([df_cal_limpio, pd.DataFrame(nuevas_filas_m)], ignore_index=True)
-            else:
-                df_cal_finalizado = df_cal_limpio
+            alumnos_citados_actualmente = df_bloque_especifico[COL_ASISTENCIA].dropna().tolist()
+            
+            st.markdown("### 3. Modifica la lista (Marca para añadir, desmarca para quitar):")
+            st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+            col_m_izq, col_m_der = st.columns(2)
+            nuevos_estados_cal = {}
+            for i, nombre in enumerate(INTEGRANTES_FIJOS):
+                ya_citado = nombre in alumnos_citados_actualmente
+                with col_m_izq if i % 2 == 0 else col_m_der:
+                    nuevos_estados_cal[nombre] = st.checkbox(nombre, value=ya_citado, key=f"mod_c_{nombre}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            boton_modificar_agenda = st.button("💾 Guardar Cambios en la Agenda del Calendario")
+            if boton_modificar_agenda:
+                alumnos_finales = [n for n, c in nuevos_estados_cal.items() if c]
+                df_cal_limpio = df_calendario[~((df_calendario[COL_FECHA] == m_fecha) & 
+                                                (df_calendario[COL_TALLER] == taller_m) & 
+                                                (df_calendario["HORARIO"] == horario_m))]
                 
-            if guardar_archivo_github(CALENDARIO_FILE, df_cal_finalizado, sha_calendario, f"Calendario: Modificación bloque {taller_m}"):
-                st.success("🎉 ¡Agenda del calendario actualizada con éxito!"); st.rerun()
+                if alumnos_finales:
+                    nuevas_filas_m = [{COL_FECHA: m_fecha, COL_ASISTENCIA: n, COL_TALLER: taller_m, COL_HORAS: float(horas_m), "HORARIO": horario_m} for n in alumnos_finales]
+                    df_cal_finalizado = pd.concat([df_cal_limpio, pd.DataFrame(nuevas_filas_m)], ignore_index=True)
+                else:
+                    df_cal_finalizado = df_cal_limpio
+                    
+                if guardar_archivo_github(CALENDARIO_FILE, df_cal_finalizado, sha_calendario, f"Calendario: Modificación bloque {taller_m}"):
+                    st.success("🎉 ¡Agenda del calendario actualizada con éxito!"); st.rerun()
     else:
         st.info("💡 No hay ninguna actividad registrada en el calendario todavía.")
 
@@ -212,7 +216,7 @@ if metodo_registro == "A partir de lo Programado en Calendario":
         st.info(f"💡 No hay ninguna actividad agendada en el calendario para el {fecha_lista_buscar}.")
     else:
         df_dia_completo['BLOQUE_UNICO'] = df_dia_completo[COL_TALLER].astype(str) + " (" + df_dia_completo["HORARIO"].astype(str) + ")"
-        bloques_disp = sorted(df_dia_completo['BLOQUE_UNICO'].unique().tolist())
+        bloques_disp = sorted(df_dia_completo['BLOQUE_UNICO'].dropna().unique().tolist())
         bloque_seleccionado = st.selectbox("📋 Selecciona la actividad a evaluar:", bloques_disp)
         
         df_citados_hoy = df_dia_completo[df_dia_completo['BLOQUE_UNICO'] == bloque_seleccionado]
@@ -261,7 +265,7 @@ else:
         else:
             filas_dir = [{COL_FECHA: fecha_lista_buscar, COL_ASISTENCIA: n, COL_TALLER: t_dir, COL_HORAS: float(h_dir)} for n in asistieron_d]
             df_f_dir = pd.concat([df_original, pd.DataFrame(filas_dir)], ignore_index=True)
-            if guardar_archivo_github(EXCEL_FILE, df_f_dir, archivo_sha, f"Directo: {taller_directo}"):
+            if guardar_archivo_github(EXCEL_FILE, df_f_dir, archivo_sha, f"Directo: {t_dir}"):
                 st.success("🎉 ¡Guardado!"); st.rerun()
 
 # --- SECCIÓN C: HISTORIAL VISUAL ---
