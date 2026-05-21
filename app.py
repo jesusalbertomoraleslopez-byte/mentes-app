@@ -14,10 +14,12 @@ URL_LOGO = "logo-mentes.png"
 # --- INYECTAR DISEÑO VISUAL INSPIRADO EN LA WEB OFICIAL ---
 st.markdown("""
     <style>
+        /* Tipografía general y fondo limpio como la web */
         html, body, [data-testid="stAppViewContainer"] {
             background-color: #FAFAFA;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
+        /* Encabezado principal estilo institucional */
         .titulo-web {
             text-align: center; 
             color: #0A2540; 
@@ -31,25 +33,30 @@ st.markdown("""
             font-size: 16px; 
             margin-bottom: 30px;
         }
+        /* Estilo para los subtítulos de secciones */
         h3 {
             color: #0A2540 !important;
             font-weight: 600 !important;
         }
+        /* Tarjetas o contenedores tipo bloques de la web */
         div[data-testid="stExpander"] {
             border: 1px solid #E4E7EB !important;
             border-radius: 8px !important;
             background-color: #FFFFFF !important;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.02) !important;
         }
+        /* FORZAR COLOR AZUL INSTITUCIONAL Y NEGRITA EN LOS MIEMBROS Y EN EL PANEL DE BORRADO */
         div[data-testid="stCheckbox"] label p, div[data-testid="stExpander"] div[data-testid="stCheckbox"] label p {
             color: #0A2540 !important;
             font-weight: 700 !important;
             font-size: 15px !important;
         }
+        /* Asegurar que las etiquetas de texto descriptivo en el panel administrativo también sean visibles */
         div[data-testid="stExpander"] p, div[data-testid="stExpander"] span {
             color: #0A2540 !important;
             font-weight: 500 !important;
         }
+        /* FORZAR COLOR ROJO EN ALERTAS DE ELIMINACIÓN PARA EVITAR FONDO NEGRO EN CELULARES */
         div[data-testid="stNotification"] {
             background-color: #FFEEEE !important;
             border: 2px solid #E53E3E !important;
@@ -60,6 +67,7 @@ st.markdown("""
             font-weight: 700 !important;
             font-size: 16px !important;
         }
+        /* Contenedor blanco de contraste para la lista de asistencia y borrado */
         .contenedor-asistencia {
             background-color: #FFFFFF !important;
             padding: 20px !important;
@@ -68,6 +76,7 @@ st.markdown("""
             margin-top: 15px !important;
             margin-bottom: 15px !important;
         }
+        /* Personalización de los botones principales (Azul Mentes con Alas) */
         .stButton > button, div[data-testid="stForm"] button {
             background-color: #0A2540 !important;
             color: white !important;
@@ -82,9 +91,16 @@ st.markdown("""
             box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
             transform: translateY(-1px);
         }
+        /* 🚨 REGLA DE MAXIMA PRIORIDAD: TEXTO BLANCO EN TODOS LOS BOTONES DE FORMULARIOS PARA CELULARES 🚨 */
+        div[data-testid="stForm"] button p, div[data-testid="stForm"] button span, .stButton button p, .stButton button span {
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+        }
+        /* Inputs y Selectores limpios */
         input, select, div[data-baseweb="select"] {
             border-radius: 6px !important;
         }
+        /* Pie de página institucional */
         .footer-web {
             text-align: center;
             font-size: 13px;
@@ -97,6 +113,7 @@ st.markdown("""
             text-decoration: none;
             font-weight: bold;
         }
+        /* BOTÓN HTML PERSONALIZADO ANTIBLOQUEO MODO OSCURO */
         .boton-borrado-html {
             background-color: #FFFFFF !important;
             color: #D32F2F !important;
@@ -162,7 +179,7 @@ def cargar_datos_sistema():
         df_asistencia = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha_asistencia = None
 
-    # 2. Cargar archivo de Calendario Independiente (Se añade columna HORARIO para control interno)
+    # 2. Cargar archivo de Calendario Independiente
     try:
         file_calendario = repo.get_contents(CALENDARIO_FILE)
         df_calendario = pd.read_excel(io.BytesIO(file_calendario.decoded_content))
@@ -209,11 +226,11 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (CON HORARIOS)"
         
         col_t1, col_t2 = st.columns(2)
         with col_t1:
-            prog_hora_inicio = st.time_input("HORA DE INICIO", time(9, 0)) # Por defecto 9:00 AM
+            prog_hora_inicio = st.time_input("HORA DE INICIO", time(9, 0))
         with col_t2:
             prog_horas_duracion = st.number_input("CANTIDAD DE HORAS (DURACIÓN)", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
         
-        # Calcular automáticamente la hora de término para informar al usuario en pantalla
+        # Calcular automáticamente la hora de término
         minutos_totales = int(prog_horas_duracion * 60)
         dt_inicio = datetime.combine(prog_fecha, prog_hora_inicio)
         dt_termino = dt_inicio + timedelta(minutes=minutos_totales)
@@ -251,11 +268,11 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (CON HORARIOS)"
                     COL_ASISTENCIA: integrante,
                     COL_TALLER: prog_taller,
                     COL_HORAS: float(prog_horas_duracion),
-                    "HORARIO": horario_completo  # Guardado en columna interna del calendario
+                    "HORARIO": horario_completo
                 })
             df_nuevo_cal = pd.concat([df_calendario, pd.DataFrame(nuevas_filas_cal)], ignore_index=True)
             if guardar_archivo_github(CALENDARIO_FILE, df_nuevo_cal, sha_calendario, f"Calendario: Se agendó {prog_taller} ({horario_completo}) para {fecha_prog_str}"):
-                st.success(f"✨ ¡Agenda guardada con éxito en {CALENDARIO_FILE}!")
+                st.success(f"✨ ¡Agenda guardada con éxito!")
                 st.rerun()
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -273,11 +290,10 @@ else:
     # Obtener los datos planeados
     taller_programado = df_citados_hoy[COL_TALLER].iloc[0]
     horas_programadas = df_citados_hoy[COL_HORAS].iloc[0]
-    # Si el archivo del calendario ya incluye horarios, lo extrae; si es viejo, pone vacío
     horario_programado = df_citados_hoy["HORARIO"].iloc[0] if "HORARIO" in df_citados_hoy.columns else ""
     
-    texto_taller_visual = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
-    st.success(f"📚 Taller Citado en Calendario: **{texto_taller_visual}** ({horas_programadas} horas)")
+    actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
+    st.success(f"📚 Taller Citado en Calendario: **{actividad_con_horario}** ({horas_programadas} horas)")
     
     with st.form("formulario_asistencia_real"):
         st.write("📋 **Lista de asistencia inteligente:** Las casillas ya están marcadas con los que citaste. **Desmarca a las personas que hayan faltado**.")
@@ -304,9 +320,6 @@ else:
         if not asistentes_reales:
             st.warning("⚠️ Al desmarcar a todos, estás indicando que nadie asistió. Debes procesar al menos una asistencia.")
         else:
-            # Formatear el nombre final de la actividad incluyendo el horario para cumplir con las 4 columnas de asistencia
-            actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
-            
             nuevos_registros_asistencia = []
             for integrante in asistentes_reales:
                 nuevos_registros_asistencia.append({
