@@ -5,7 +5,7 @@ from github import Github
 import io
 import calendar
 
-# Configuración de la pestaña del navegador (Centered para máxima adaptabilidad)
+# Configuración de la pestaña del navegador (Centered para mejor lectura en celulares)
 st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
 EXCEL_FILE = "asistencia.xlsx"
@@ -40,10 +40,10 @@ st.markdown("""
         .footer-web a { color: #0A2540 !important; text-decoration: none; font-weight: bold; }
         .boton-borrado-html { background-color: #FFFFFF !important; color: #D32F2F !important; border: 3px solid #D32F2F !important; padding: 14px 20px !important; text-align: center !important; font-size: 16px !important; font-weight: 800 !important; border-radius: 8px !important; width: 100% !important; text-transform: uppercase !important; box-shadow: 0px 4px 6px rgba(0,0,0,0.1) !important; }
         
-        /* 📅 DISEÑO PARA EL CALENDARIO MENSUAL RESPONSIVE 📅 */
+        /* 📅 DISEÑO ADAPTATIVO PARA EL CALENDARIO MATRICIAL NATIVO 📅 */
         .tabla-calendario { width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); table-layout: fixed; }
         .tabla-calendario th { background-color: #0A2540; color: #FFFFFF; padding: 10px 5px; font-weight: 700; text-align: center; font-size: 13px; border: 1px solid #1F3B5C; }
-        .tabla-calendario td { height: 95px; vertical-align: top; padding: 6px 4px; border: 1px solid #E4E7EB; position: relative; background-color: #FFFFFF; overflow: hidden; }
+        .tabla-calendario td { height: 90px; vertical-align: top; padding: 6px 4px; border: 1px solid #E4E7EB; position: relative; background-color: #FFFFFF; overflow: hidden; }
         .num-dia { font-weight: 700; color: #627D98; font-size: 13px; margin-bottom: 3px; display: block; }
         .dia-vacio { background-color: #F8FAFC !important; }
         .dia-hoy { background-color: #EFF6FF !important; border: 2px solid #3B82F6 !important; }
@@ -51,7 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- LISTAS OFICIALES FIJAS ---
+# --- LISTAS OFICIALES ---
 INTEGRANTES_FIJOS = [
     "ANA DE LOS ÁNGELES TORRES REVELES", "CARLOS ALBERTO DE LA TORRE SANTELLANO", "CRISTABEL DE LA CRUZ MALDONADO",
     "EFRAÍN MAYNEZ PORRAS", "FERNANDO ÁVILA BERLANGA", "FLORINDA ESTEVANÉ PIZARRO", "GUADALUPE LÓPEZ TOVAR",
@@ -127,34 +127,27 @@ with col_logo_2:
 st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
-# 🚨 SISTEMA ESTRUCTURAL DE 4 PESTAÑAS (MÓDULOS INDEPENDIENTES) 🚨
-tab_planeacion, tab_mensual, tab_asistencia, tab_revision = st.tabs([
-    "📅 1. PLANEACIÓN", 
-    "🗓️ 2. AGENDA VISUAL", 
-    "📝 3. ASISTENCIA", 
-    "📋 4. REVISIÓN HISTÓRICA"
-])
+# 🚨 PESTAÑAS DE NAVEGACIÓN SUPERIOR MODALIDAD HÍBRIDA RESPONSIVA 🚨
+tab_asistencia, tab_calendario = st.tabs(["📊 REGISTRO DE ASISTENCIA", "📅 CALENDARIO MENSUAL DE ACTIVIDADES"])
 
-# ==========================================================
-# ESPACIO 1: PROGRAMAR Y MODIFICAR AGNDA DEL CALENDARIO
-# ==========================================================
-with tab_planeacion:
-    st.markdown("### 📅 Programación y Control de Agenda")
-    st.write("Agrega bloques de clase futuros o modifica integrantes citados en materias existentes.")
+# ==========================================
+# PESTAÑA 1: SISTEMA DE CONTROL DE ASISTENCIA
+# ==========================================
+with tab_asistencia:
     
-    # Bloque A: Crear Actividad
-    with st.expander("➕ Programar una Nueva Actividad en el Calendario", expanded=True):
-        with st.form("form_crear_agenda_premium"):
+    # --- FORMULARIO 1: PROGRAMAR ACTIVIDADES ---
+    with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO", expanded=False):
+        with st.form("form_crear_agenda"):
             p_fecha = st.date_input("FECHA PROGRAMADA", datetime.now())
             p_taller = st.selectbox("TALLER A IMPARTIR", TALLERES_FIJOS)
             c1, c2 = st.columns(2)
             with c1: p_ini = st.time_input("HORA DE INICIO", time(9, 0))
-            with c2: p_dur = st.number_input("CANTIDAD DE HORAS (DURACIÓN)", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
+            with c2: p_dur = st.number_input("CANTIDAD DE HORAS", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
             
             min_totales = int(p_dur * 60)
             dt_fin = datetime.combine(p_fecha, p_ini) + timedelta(minutes=min_totales)
             h_completo = f"{p_ini.strftime('%H:%M')} - {dt_fin.strftime('%H:%M')}"
-            st.info(f"⏰ Horario de bloque calculado: {h_completo}")
+            st.info(f"⏰ Horario calculado: {h_completo}")
             
             st.markdown("### 👥 Selecciona los Integrantes Citados:")
             st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
@@ -164,20 +157,20 @@ with tab_planeacion:
                 with col_c_izq if i % 2 == 0 else col_c_der:
                     estados_cal[nombre] = st.checkbox(nombre, value=False, key=f"cal_{nombre}")
             st.markdown('</div>', unsafe_allow_html=True)
-            boton_add_cal = st.form_submit_button("🗓️ Guardar Programación de Actividad")
+            boton_add_cal = st.form_submit_button("🗓️ Guardar Programación")
 
         if boton_add_cal:
             citados = [n for n, c in estados_cal.items() if c]
-            if not citados: st.warning("⚠️ Selecciona al menos un integrante.")
+            if not citados: st.warning("⚠️ Elige al menos un integrante.")
             else:
                 f_str = p_fecha.strftime("%d/%m/%Y")
                 filas = [{COL_FECHA: f_str, COL_ASISTENCIA: n, COL_TALLER: p_taller, COL_HORAS: float(p_dur), "HORARIO": h_completo} for n in citados]
                 df_n_cal = pd.concat([df_calendario, pd.DataFrame(filas)], ignore_index=True)
-                if guardar_archivo_github(CALENDARIO_FILE, df_n_cal, sha_calendario, f"Agenda: {p_taller} para {f_str}"):
-                    st.success("✨ ¡Actividad agendada y guardada en el calendario!"); st.rerun()
+                if guardar_archivo_github(CALENDARIO_FILE, df_n_cal, sha_calendario, f"Agenda: {p_taller}"):
+                    st.success("✨ ¡Guardado con éxito!"); st.rerun()
 
-    # Bloque B: Modificar Actividad (Abierto sin contraseña)
-    with st.expander("✏️ Añadir o Quitar Personas de una Actividad Programada", expanded=False):
+    # --- FORMULARIO 2: EDITAR AGENDA ---
+    with st.expander("✏️ MODIFICAR O CORREGIR AGENDA DEL CALENDARIO", expanded=False):
         if not df_calendario.empty:
             fechas_cal = sorted(df_calendario[COL_FECHA].dropna().unique().tolist(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
             m_fecha = st.selectbox("1. Elige la fecha que deseas corregir:", fechas_cal, key="m_fecha_sel")
@@ -193,7 +186,7 @@ with tab_planeacion:
                 horario_m = df_bloque_especifico["HORARIO"].iloc[0]
                 alumnos_citados_actualmente = df_bloque_especifico[COL_ASISTENCIA].dropna().tolist()
                 
-                st.markdown("### 3. Modifica la lista de participantes:")
+                st.markdown("### 3. Modifica la lista:")
                 st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
                 col_m_izq, col_m_der = st.columns(2)
                 nuevos_estados_cal = {}
@@ -213,16 +206,123 @@ with tab_planeacion:
                     else:
                         df_cal_finalizado = df_cal_limpio
                     if guardar_archivo_github(CALENDARIO_FILE, df_cal_finalizado, sha_calendario, f"Calendario: Modificación bloque {taller_m}"):
-                        st.success("🎉 ¡Agenda del calendario corregida con éxito!"); st.rerun()
+                        st.success("🎉 ¡Agenda actualizada!"); st.rerun()
         else:
-            st.info("💡 No hay actividades planificadas en el calendario para modificar.")
+            st.info("💡 No hay actividades en el calendario todavía.")
 
-# ==========================================================
-# ESPACIO 2: CALENDARIO MENSUAL DE ACTIVIDADES
-# ==========================================================
-with tab_mensual:
+    # --- FORMULARIO 3: PASE DE LISTA REAL ---
+    st.markdown("### 📝 2. REALIZAR PASE DE LISTA REAL")
+    metodo_registro = st.radio("¿Cómo deseas pasar asistencia hoy?", ["A partir de lo Programado en Calendario", "Registrar Actividad Directa (Sin Programar)"], horizontal=True)
+    fecha_lista_buscar = st.date_input("Selecciona la fecha de la actividad:", datetime.now()).strftime("%d/%m/%Y")
+
+    if metodo_registro == "A partir de lo Programado en Calendario":
+        df_dia_completo = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar].copy()
+        if df_dia_completo.empty:
+            st.info(f"💡 No hay ninguna actividad agendada en el calendario para el {fecha_lista_buscar}.")
+        else:
+            df_dia_completo['BLOQUE_UNICO'] = df_dia_completo[COL_TALLER].astype(str) + " (" + df_dia_completo["HORARIO"].astype(str) + ")"
+            bloques_disp = sorted(df_dia_completo['BLOQUE_UNICO'].dropna().unique().tolist())
+            bloque_seleccionado = st.selectbox("📋 Selecciona la actividad a evaluar:", bloques_disp)
+            
+            df_citados_hoy = df_dia_completo[df_dia_completo['BLOQUE_UNICO'] == bloque_seleccionado]
+            taller_p = df_citados_hoy[COL_TALLER].iloc[0]
+            horas_p = df_citados_hoy[COL_HORAS].iloc[0]
+            horario_p = df_citados_hoy["HORARIO"].iloc[0]
+            act_con_h = f"{taller_p} ({horario_p})"
+            
+            st.success(f"📚 Bloque Activo: **{taller_p}** de **{horario_p}** ({horas_p} horas)")
+            with st.form("form_real_cal"):
+                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+                col_r_izq, col_r_der = st.columns(2)
+                checks_p = {}
+                for i, (idx, fila) in enumerate(df_citados_hoy.drop_duplicates(subset=[COL_ASISTENCIA]).iterrows()):
+                    n_alumno = fila[COL_ASISTENCIA]
+                    with col_r_izq if i % 2 == 0 else col_r_der:
+                        checks_p[n_alumno] = st.checkbox(n_alumno, value=True, key=f"real_c_{idx}")
+                st.markdown('</div>', unsafe_allow_html=True)
+                btn_save_cal = st.form_submit_button("💾 Guardar Asistencia (Calendario)")
+                
+            if btn_save_cal:
+                asistieron = [n for n, c in checks_p.items() if c]
+                if not asistieron: st.warning("⚠️ Registra al menos una asistencia.")
+                else:
+                    filas_asist = [{COL_FECHA: fecha_lista_buscar, COL_ASISTENCIA: n, COL_TALLER: act_con_h, COL_HORAS: float(horas_p)} for n in asistieron]
+                    df_f_asist = pd.concat([df_original, pd.DataFrame(filas_asist)], ignore_index=True)
+                    if guardar_archivo_github(EXCEL_FILE, df_f_asist, archivo_sha, f"Asistencia: {act_con_h}"):
+                        st.success("🎉 ¡Guardado!"); st.rerun()
+    else:
+        with st.form("form_real_dir"):
+            c_d1, c_d2 = st.columns(2)
+            with c_d1: t_dir = st.selectbox("TALLER IMPARTIDO", TALLERES_FIJOS)
+            with c_d2: h_dir = st.number_input("HORAS DEL TALLER", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
+            st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+            col_rd_izq, col_rd_der = st.columns(2)
+            checks_d = {}
+            for i, nombre in enumerate(INTEGRANTES_FIJOS):
+                with col_rd_izq if i % 2 == 0 else col_rd_der:
+                    checks_d[nombre] = st.checkbox(nombre, value=True, key=f"chk_dir_{nombre}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            btn_save_dir = st.form_submit_button("💾 Registrar Asistencia (Directo)")
+            
+        if btn_save_dir:
+            asistieron_d = [n for n, c in checks_d.items() if c]
+            if not asistieron_d: st.warning("⚠️ Selecciona al menos un integrante.")
+            else:
+                filas_dir = [{COL_FECHA: fecha_lista_buscar, COL_ASISTENCIA: n, COL_TALLER: t_dir, COL_HORAS: float(h_dir)} for n in asistieron_d]
+                df_f_dir = pd.concat([df_original, pd.DataFrame(filas_dir)], ignore_index=True)
+                if guardar_archivo_github(EXCEL_FILE, df_f_dir, archivo_sha, f"Directo: {t_dir}"):
+                    st.success("🎉 ¡Guardado!"); st.rerun()
+
+    # --- HISTORIAL Y BUSCADOR ---
+    st.markdown("---"); st.markdown("### 📋 Historial y Buscador de Asistencias")
+    if not df_original.empty:
+        df_vis = df_original.copy()
+        try:
+            df_vis['FECHA_DT'] = pd.to_datetime(df_vis[COL_FECHA], format="%d/%m/%Y", errors='coerce')
+            df_vis = df_vis.sort_values(by='FECHA_DT', ascending=False).drop(columns=['FECHA_DT'])
+        except Exception: pass
+        
+        filtro = st.text_input("🔍 Filtro en tiempo real:").strip().upper()
+        if filtro:
+            mask = df_vis[COL_FECHA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_ASISTENCIA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_TALLER].astype(str).str.upper().str.contains(filtro)
+            df_f_tabla = df_vis[mask]
+        else: df_f_tabla = df_vis
+        
+        st.dataframe(df_f_tabla, use_container_width=True)
+        output_d = io.BytesIO()
+        with pd.ExcelWriter(output_d, engine='openpyxl') as writer:
+            df_vis.sort_values(by=COL_FECHA, ascending=True).to_excel(writer, index=False)
+        st.download_button(label="📥 Descargar Base de Datos Completa", data=output_d.getvalue(), file_name=f"asistencia_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    else: st.info("💡 Archivo vacío.")
+
+    with st.expander("🚨 Panel de Administración - Control de Historial", expanded=False):
+        clave = st.text_input("Contraseña:", type="password")
+        if clave == CLAVE_BORRADO:
+            if not df_original.empty:
+                fechas_u = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
+                f_sel = st.selectbox("Fecha error:", fechas_u)
+                df_dia_b = df_original[df_original[COL_FECHA] == f_sel].copy()
+                
+                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+                b_regs = []
+                for idx, fila in df_dia_b.iterrows():
+                    if st.checkbox(f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]}", value=False, key=f"del_{idx}"): b_regs.append(idx)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                if b_regs:
+                    st.error(f"Se eliminarán {len(b_regs)} filas.")
+                    if st.checkbox("Confirmar acción", value=False):
+                        st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
+                        df_res = df_original.drop(index=b_regs)
+                        if guardar_archivo_github(EXCEL_FILE, df_res, archivo_sha, "Admin: Borrado"):
+                            st.success("Eliminado con éxito!"); st.rerun()
+
+# ==========================================
+# PESTAÑA 2: CALENDARIO EN PANTALLA COMPLETA
+# ==========================================
+with tab_calendario:
     st.markdown("### 🗓️ Agenda Mensual de Actividades")
-    st.write("Consulta de forma gráfica la distribución de clases programadas en la institución:")
+    st.write("Navega por los meses del año para revisar las planificaciones cargadas en el archivo de Excel:")
     
     hoy = datetime.now()
     c_m1, c_m2 = st.columns(2)
@@ -244,7 +344,8 @@ with tab_mensual:
                 f_obj = datetime.strptime(str(fila[COL_FECHA]), "%d/%m/%Y")
                 if f_obj.month == mes_num and f_obj.year == anio_sel:
                     dia_key = f_obj.day
-                    if dia_key not in diccionario_eventos: diccionario_eventos[dia_key] = []
+                    if dia_key not in diccionario_eventos:
+                        diccionario_eventos[dia_key] = []
                     diccionario_eventos[dia_key].append(f"<b>{fila[COL_TALLER]}</b><br>⏱️ {fila['HORARIO']}")
             except: pass
 
@@ -254,9 +355,13 @@ with tab_mensual:
     for semana in semanas_matriz:
         html_codigo += "<tr>"
         for dia in semana:
-            if dia == 0: html_codigo += "<td class='dia-vacio'></td>"
+            if dia == 0:
+                html_codigo += "<td class='dia-vacio'></td>"
             else:
-                clase_celda = "class='dia-hoy'" if (dia == hoy.day and mes_num == hoy.month and anio_sel == hoy.year) else ""
+                clase_celda = ""
+                if dia == hoy.day and mes_num == hoy.month and anio_sel == hoy.year:
+                    clase_celda = "class='dia-hoy'"
+                
                 html_codigo += f"<td {clase_celda}><span class='num-dia'>{dia}</span>"
                 if dia in diccionario_eventos:
                     for evento in diccionario_eventos[dia]:
@@ -264,130 +369,9 @@ with tab_mensual:
                 html_codigo += "</td>"
         html_codigo += "</tr>"
     html_codigo += "</table>"
+    
     st.markdown(html_codigo, unsafe_allow_html=True)
 
-# ==========================================================
-# ESPACIO 3: TODO LO RELACIONADO A REGISTROS DE ASISTENCIA
-# ==========================================================
-with tab_asistencia:
-    st.markdown("### 📝 Registro y Captura de Asistencia Real")
-    metodo_registro = st.radio("¿Cómo deseas pasar asistencia hoy?", ["A partir de lo Programado en Calendario", "Registrar Actividad Directa (Sin Programar)"], horizontal=True, key="radio_asistencia_premium")
-    fecha_lista_buscar = st.date_input("Selecciona la fecha de la actividad:", datetime.now()).strftime("%d/%m/%Y")
-
-    if metodo_registro == "A partir de lo Programado en Calendario":
-        df_dia_completo = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar].copy()
-        if df_dia_completo.empty:
-            st.info(f"💡 No hay ninguna actividad agendada en el calendario para el {fecha_lista_buscar}.")
-        else:
-            df_dia_completo['BLOQUE_UNICO'] = df_dia_completo[COL_TALLER].astype(str) + " (" + df_dia_completo["HORARIO"].astype(str) + ")"
-            bloques_disp = sorted(df_dia_completo['BLOQUE_UNICO'].dropna().unique().tolist())
-            bloque_seleccionado = st.selectbox("📋 Selecciona la actividad a evaluar:", bloques_disp)
-            
-            df_citados_hoy = df_dia_completo[df_dia_completo['BLOQUE_UNICO'] == bloque_seleccionado]
-            taller_p = df_citados_hoy[COL_TALLER].iloc[0]
-            horas_p = df_citados_hoy[COL_HORAS].iloc[0]
-            horario_p = df_citados_hoy["HORARIO"].iloc[0]
-            act_con_h = f"{taller_p} ({horario_p})"
-            
-            st.success(f"📚 Bloque Activo: **{taller_p}** de **{horario_p}** ({horas_p} horas)")
-            with st.form("form_real_cal_premium"):
-                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-                col_r_izq, col_r_der = st.columns(2)
-                checks_p = {}
-                for i, (idx, fila) in enumerate(df_citados_hoy.drop_duplicates(subset=[COL_ASISTENCIA]).iterrows()):
-                    n_alumno = fila[COL_ASISTENCIA]
-                    with col_r_izq if i % 2 == 0 else col_r_der:
-                        checks_p[n_alumno] = st.checkbox(n_alumno, value=True, key=f"real_c_{idx}")
-                st.markdown('</div>', unsafe_allow_html=True)
-                btn_save_cal = st.form_submit_button("💾 Guardar Asistencia (Calendario)")
-                
-            if btn_save_cal:
-                asistieron = [n for n, c in checks_p.items() if c]
-                if not asistieron: st.warning("⚠️ Registra al menos una asistencia.")
-                else:
-                    filas_asist = [{COL_FECHA: fecha_lista_buscar, COL_ASISTENCIA: n, COL_TALLER: act_con_h, COL_HORAS: float(horas_p)} for n in asistieron]
-                    df_f_asist = pd.concat([df_original, pd.DataFrame(filas_asist)], ignore_index=True)
-                    if guardar_archivo_github(EXCEL_FILE, df_f_asist, archivo_sha, f"Asistencia: {act_con_h}"):
-                        st.success("🎉 ¡Asistencia guardada e inyectada en el historial!"); st.rerun()
-    else:
-        with st.form("form_real_dir_premium"):
-            c_d1, c_d2 = st.columns(2)
-            with c_d1: t_dir = st.selectbox("TALLER IMPARTIDO", TALLERES_FIJOS)
-            with c_d2: h_dir = st.number_input("HORAS DEL TALLER", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
-            st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-            col_rd_izq, col_rd_der = st.columns(2)
-            checks_d = {}
-            for i, nombre in enumerate(INTEGRANTES_FIJOS):
-                with col_rd_izq if i % 2 == 0 else col_rd_der:
-                    checks_d[nombre] = st.checkbox(nombre, value=True, key=f"chk_dir_{nombre}")
-            st.markdown('</div>', unsafe_allow_html=True)
-            btn_save_dir = st.form_submit_button("💾 Registrar Asistencia (Directo)")
-            
-        if btn_save_dir:
-            asistieron_d = [n for n, c in checks_d.items() if c]
-            if not asistieron_d: st.warning("⚠️ Selecciona al menos un integrante.")
-            else:
-                filas_dir = [{COL_FECHA: fecha_lista_buscar, COL_ASISTENCIA: n, COL_TALLER: t_dir, COL_HORAS: float(h_dir)} for n in asistieron_d]
-                df_f_dir = pd.concat([df_original, pd.DataFrame(filas_dir)], ignore_index=True)
-                if guardar_archivo_github(EXCEL_FILE, df_f_dir, archivo_sha, f"Directo: {t_dir}"):
-                    st.success("🎉 ¡Asistencia registrada directamente con éxito!"); st.rerun()
-
-# ==========================================================
-# ESPACIO 4: REVISIÓN DE REGISTROS HISTÓRICOS Y MODIFICACIÓN
-# ==========================================================
-with tab_revision:
-    st.markdown("### 📋 Historial Completo y Modificación de Asistencias")
-    st.write("Consulta reportes consolidados o elimina registros erróneos de la base de datos.")
-    
-    if not df_original.empty:
-        df_vis = df_original.copy()
-        try:
-            df_vis['FECHA_DT'] = pd.to_datetime(df_vis[COL_FECHA], format="%d/%m/%Y", errors='coerce')
-            df_vis = df_vis.sort_values(by='FECHA_DT', ascending=False).drop(columns=['FECHA_DT'])
-        except Exception: pass
-        
-        filtro = st.text_input("🔍 Escribe un NOMBRE, FECHA o TALLER para filtrar la lista:", key="filtro_historial").strip().upper()
-        if filtro:
-            mask = df_vis[COL_FECHA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_ASISTENCIA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_TALLER].astype(str).str.upper().str.contains(filtro)
-            df_f_tabla = df_vis[mask]
-        else: df_f_tabla = df_vis
-        
-        st.dataframe(df_f_tabla, use_container_width=True)
-        
-        output_d = io.BytesIO()
-        with pd.ExcelWriter(output_d, engine='openpyxl') as writer:
-            df_vis.sort_values(by=COL_FECHA, ascending=True).to_excel(writer, index=False)
-        st.download_button(label="📥 Descargar Base de Datos Completa (Excel)", data=output_d.getvalue(), file_name=f"asistencia_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="btn_download_final_premium")
-    else:
-        st.info("💡 El archivo de asistencias en GitHub se encuentra completamente vacío.")
-
-    # Módulo de Borrado Protegido con Password integrado en la pestaña de revisión
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("🚨 Panel Especializado - Eliminar Errores del Historial", expanded=False):
-        st.write("Esta sección te permite borrar renglones específicos del archivo histórico de asistencias.")
-        clave = st.text_input("Ingresa la clave de autorización:", type="password", key="clave_admin_final")
-        if clave == CLAVE_BORRADO:
-            st.warning("⚠️ Clave correcta. Selecciona las casillas que deseas borrar de manera permanente:")
-            if not df_original.empty:
-                fechas_u = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
-                f_sel = st.selectbox("1. Filtra por fecha del error:", fechas_u, key="fecha_borrar_admin")
-                df_dia_b = df_original[df_original[COL_FECHA] == f_sel].copy()
-                
-                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-                b_regs = []
-                for idx, fila in df_dia_b.iterrows():
-                    if st.checkbox(f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]}", value=False, key=f"del_{idx}"): b_regs.append(idx)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                if b_regs:
-                    st.error(f"🚨 Has marcado {len(b_regs)} renglón(es) para eliminación permanente.")
-                    if st.checkbox("👉 Marca esta casilla para habilitar el botón de borrado", value=False, key="chk_confirmar_borrado_html"):
-                        st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
-                        df_res = df_original.drop(index=b_regs)
-                        if guardar_archivo_github(EXCEL_FILE, df_res, archivo_sha, f"Admin: Borrado de {len(b_regs)} registros del {f_sel}"):
-                            st.success("🎉 ¡Registros removidos de GitHub!"); st.rerun()
-        elif clave != "":
-            st.error("❌ Clave incorrecta de administración.")
-
-# --- PIE DE PÁGINA
+# --- PIE DE PÁGINA INSTITUCIONAL ---
+st.markdown('<div class="footer-web"><hr>Av. Ocampo 1797 ote. Col. Centro Torreón, Coah.<br><b>MENTES CON ALAS ES DONATARIA AUTORIZADA</b><br><a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a></div>', unsafe_allow_html=True)
 
