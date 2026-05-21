@@ -155,40 +155,18 @@ INTEGRANTES_FIJOS = [
     "TOMASITA MARÍA ENRIQUETA RIVERA DEL BOSQUE"
 ]
 
-# --- LISTA OFICIAL Y FIJA DE TALLERES / CURSOS ---
+# --- NUEVA LISTA ACTUALIZADA DE TALLERES SEGÚN TU IMAGEN ---
 TALLERES_FIJOS = [
-    "ACTIVIDAD FÍSICA Y DEPORTE",
-    "ALIMENTACIÓN Y NUTRICIÓN",
-    "ALTA DE TALLER SISTEMA",
-    "ARTE Y PINTURA",
-    "ARTES PLÁSTICAS",
-    "ASAMBLEA DE BIENVENIDA",
-    "ASISTENCIA SOCIAL Y COMUNITARIA",
-    "AUTOESTIMA Y DESARROLLO PERSONAL",
-    "AUTONOMÍA Y VIDA INDEPENDIENTE",
-    "BAILE Y EXPRESIÓN CORPORAL",
-    "CINE DEBATE Y REFLEXIÓN",
-    "COCINA Y REPOSTERÍA",
-    "COMPRENSIÓN LECTORA Y ESCRITURA",
-    "COMPUTACIÓN Y TECNOLOGÍA",
-    "COMUNICACIÓN Y LENGUAJE",
-    "CONVIVENCIA INSTITUCIONAL",
-    "CUIDADO PERSONAL E HIGIENE",
-    "DERECHOS HUMANOS E INCLUSIÓN",
-    "EXPRESIÓN EMOCIONAL Y PSICOLOGÍA",
-    "HABILIDADES COGNITIVAS",
-    "HABILIDADES SOCIALES",
-    "HUERTO Y JARDINERÍA",
-    "INGLÉS BÁSICO",
-    "LECTOESCRITURA",
-    "MANUALIDADES Y ARTESANÍAS",
-    "MATEMÁTICAS FUNCIONALES",
-    "MEDITACIÓN Y RELAJACIÓN",
-    "MÚSICA Y CANTO",
-    "ORIENTACIÓN ESPACIAL Y TIEMPO",
-    "PSICOMOTRICIDAD FINA Y GRUESA",
-    "SALIDAS RECREATIVAS Y CULTURALES",
-    "TEATRO Y DRAMATIZACIÓN"
+    "AJEDREZ",
+    "ARTE",
+    "DESARROLLO EDUCATIVO",
+    "FELDENKRAIS",
+    "GRUPO DE CRECIMIENTO",
+    "MOVIMIENTO VITAL EXPRESIVO",
+    "TALLER \"SÍ PUEDO\"",
+    "TALLER DE COMUNICACIÓN",
+    "TEATRO",
+    "VIDA DIARIA"
 ]
 
 # Columnas definitivas para el archivo Excel
@@ -218,10 +196,7 @@ def cargar_menus_y_datos():
         df = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha = None
 
-    # Base de datos local dinámica combinando los fijos más los guardados en Excel
     integrantes = INTEGRANTES_FIJOS
-    
-    # Extraer talleres adicionales creados dinámicamente desde el archivo de Excel
     talleres_excel = df[COL_TALLER].dropna().astype(str).str.strip().unique().tolist() if not df.empty else []
     talleres = sorted(list(set(TALLERES_FIJOS + talleres_excel)))
     
@@ -387,7 +362,6 @@ with st.expander("🚨 Panel de Administración - Control de Historial y Tallere
             key="radio_gestion"
         )
         
-        # SUB-MÓDULO 1: BORRADO INDIVIDUAL DE PERSONAS (LO QUE YA HACÍAMOS)
         if tipo_gestion == "🗑️ Eliminar asistencia de PERSONAS específicas":
             if not df_original.empty:
                 fechas_unicas = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
@@ -422,27 +396,21 @@ with st.expander("🚨 Panel de Administración - Control de Historial y Tallere
             else:
                 st.info("💡 La base de datos está vacía. No hay registros que borrar.")
                 
-        # SUB-MÓDULO 2: NUEVA FUNCIÓN PARA BORRAR UN TALLER COMPLETO
         elif tipo_gestion == "❌ Eliminar un TALLER completo del sistema":
             if not df_original.empty:
-                # Filtrar la lista de talleres que existen actualmente con registros en el archivo Excel
                 talleres_activos = sorted(df_original[COL_TALLER].dropna().unique().tolist())
                 
                 if talleres_activos:
                     taller_a_remover = st.selectbox("1. Selecciona el taller que deseas dar de baja por completo:", talleres_activos, key="select_taller_baja")
+                    filas_affected = len(df_original[df_original[COL_TALLER] == taller_a_remover])
                     
-                    # Calcular el impacto (cuántas filas están ligadas a ese taller)
-                    filas_afectadas = len(df_original[df_original[COL_TALLER] == Taller_a_remover])
-                    
-                    st.error(f"🚨 ATENCIÓN: Al eliminar el taller '{taller_a_remover}', se borrarán también de forma automática las {filas_afectadas} asistencias asociadas a él.")
+                    st.error(f"🚨 ATENCIÓN: Al eliminar el taller '{taller_a_remover}', se borrarán también de forma automática las {filas_affected} asistencias asociadas a él.")
                     
                     confirmar_clic_html_taller = st.checkbox("👉 Marca esta casilla para habilitar la remoción del taller", value=False, key="check_activar_html_taller")
                     st.markdown('<button class="boton-borrado-html">❌ ELIMINAR TALLER DE LA BASE DE DATOS</button>', unsafe_allow_html=True)
                     
                     if confirmar_clic_html_taller:
-                        # Filtrar la base de datos removiendo todas las filas del taller seleccionado
-                        df_sin_taller = df_original[df_original[COL_TALLER] != Taller_a_remover]
-                        
+                        df_sin_taller = df_original[df_original[COL_TALLER] != taller_a_remover]
                         if guardar_en_github(df_sin_taller, archivo_sha, f"Admin: Baja definitiva del taller {taller_a_remover} y sus registros"):
                             st.success(f"🎉 ¡El taller '{taller_a_remover}' y todas sus asistencias han sido eliminados con éxito!")
                             st.rerun()
@@ -461,5 +429,8 @@ st.markdown("""
         Av. Ocampo 1797 ote. C.P. 27000, Col. Centro Torreón, Coah.<br>
         <b>MENTES CON ALAS ES DONATARIA AUTORIZADA</b><br>
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
+    </div>
+""", unsafe_allow_html=True)
+
     </div>
 """, unsafe_allow_html=True)
