@@ -107,7 +107,7 @@ st.markdown("""
             text-decoration: none;
             font-weight: bold;
         }
-        /* 🚨 BOTÓN HTML PERSONALIZADO ANTIBLOQUEO MODO OSCURO 🚨 */
+        /* BOTÓN HTML PERSONALIZADO ANTIBLOQUEO MODO OSCURO */
         .boton-borrado-html {
             background-color: #FFFFFF !important;
             color: #D32F2F !important;
@@ -218,8 +218,13 @@ def cargar_menus_y_datos():
         df = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha = None
 
+    # Base de datos local dinámica combinando los fijos más los guardados en Excel
     integrantes = INTEGRANTES_FIJOS
-    talleres = sorted(list(set(TALLERES_FIJOS)))
+    
+    # Extraer talleres adicionales creados dinámicamente desde el archivo de Excel
+    talleres_excel = df[COL_TALLER].dropna().astype(str).str.strip().unique().tolist() if not df.empty else []
+    talleres = sorted(list(set(TALLERES_FIJOS + talleres_excel)))
+    
     return integrantes, talleres, df, sha
 
 def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
@@ -367,59 +372,85 @@ if not df_original.empty:
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de GitHub.")
 
-# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR REGISTROS POR CASILLAS) ---
+# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR REGISTROS / TALLERES) ---
 st.markdown("<br>", unsafe_allow_html=True)
-with st.expander("🚨 Panel de Administración - Borrado Específico por Persona", expanded=False):
-    st.write("Esta sección te permite seleccionar de forma exacta qué personas o registros deseas eliminar de la base de datos.")
+with st.expander("🚨 Panel de Administración - Control de Historial y Talleres", expanded=False):
+    st.write("Módulo de alta seguridad exclusivo para la remoción precisa de información errónea en la base de datos.")
     clave_input = st.text_input("Ingresa la clave de autorización:", type="password", key="clave_borrar")
     
     if clave_input == CLAVE_BORRADO:
-        st.warning("⚠️ Clave correcta. Configura los filtros de abajo para buscar y seleccionar los registros a eliminar.")
+        st.warning("⚠️ Clave correcta. Elige la acción administrativa que deseas ejecutar:")
         
-        if not df_original.empty:
-            # 1. Obtener todas las fechas únicas de la base de datos
-            fechas_unicas = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
-            fecha_seleccionada = st.selectbox("1. Selecciona la fecha donde se encuentra el error:", fechas_unicas, key="fecha_eliminar_individual")
-            
-            # 2. Filtrar el DataFrame original para obtener solo los registros de esa fecha seleccionada
-            df_dia = df_original[df_original[COL_FECHA] == fecha_seleccionada].copy()
-            
-            if not df_dia.empty:
-                st.markdown("### 2. Selecciona las casillas de las personas que deseas BORRAR:")
-                st.write("*(Los registros que dejes SIN MARCAR se conservarán intactos)*")
+        tipo_gestion = st.radio(
+            "Selecciona el componente a administrar:",
+            ["-- Selecciona una acción --", "🗑️ Eliminar asistencia de PERSONAS específicas", "❌ Eliminar un TALLER completo del sistema"],
+            key="radio_gestion"
+        )
+        
+        # SUB-MÓDULO 1: BORRADO INDIVIDUAL DE PERSONAS (LO QUE YA HACÍAMOS)
+        if tipo_gestion == "🗑️ Eliminar asistencia de PERSONAS específicas":
+            if not df_original.empty:
+                fechas_unicas = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
+                fecha_seleccionada = st.selectbox("1. Selecciona la fecha donde se encuentra el error:", fechas_unicas, key="fecha_eliminar_individual")
                 
-                registros_a_eliminar = []
+                df_dia = df_original[df_original[COL_FECHA] == fecha_seleccionada].copy()
                 
-                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-                for idx, fila in df_dia.iterrows():
-                    info_registro = f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]} ({fila[COL_HORAS]} hrs)"
-                    marcado = st.checkbox(info_registro, value=False, key=f"del_{idx}")
-                    if marcado:
-                        registros_a_eliminar.append(idx)
-                st.markdown('</div>', unsafe_allow_html=True)
+                if not df_dia.empty:
+                    st.markdown("### 2. Selecciona las casillas de las personas que deseas BORRAR:")
+                    registros_a_eliminar = []
+                    
+                    st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+                    for idx, fila in df_dia.iterrows():
+                        info_registro = f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]} ({fila[COL_HORAS]} hrs)"
+                        marcado = st.checkbox(info_registro, value=False, key=f"del_{idx}")
+                        if marcado:
+                            registros_a_eliminar.append(idx)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    if registros_a_eliminar:
+                        st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
+                        confirmar_clic_html = st.checkbox("👉 Marca esta casilla para activar el botón de guardado permanente", value=False, key="check_activar_html_personas")
+                        st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
+                        
+                        if confirmar_clic_html:
+                            df_resultado = df_original.drop(index=registros_a_eliminar)
+                            if guardar_en_github(df_resultado, archivo_sha, f"Admin: Eliminación de {len(registros_a_eliminar)} registros individuales del día {fecha_seleccionada}"):
+                                st.success("🎉 ¡Los registros seleccionados han sido removidos con éxito de GitHub!")
+                                st.rerun()
+                else:
+                    st.info("No se encontraron registros para la fecha seleccionada.")
+            else:
+                st.info("💡 La base de datos está vacía. No hay registros que borrar.")
                 
-                # 3. Procesar la eliminación de las casillas seleccionadas
-                if registros_a_eliminar:
-                    st.error(f"🚨 Alerta de seguridad: Has marcado {len(registros_a_eliminar)} registro(s) para ser eliminado(s).")
+        # SUB-MÓDULO 2: NUEVA FUNCIÓN PARA BORRAR UN TALLER COMPLETO
+        elif tipo_gestion == "❌ Eliminar un TALLER completo del sistema":
+            if not df_original.empty:
+                # Filtrar la lista de talleres que existen actualmente con registros en el archivo Excel
+                talleres_activos = sorted(df_original[COL_TALLER].dropna().unique().tolist())
+                
+                if talleres_activos:
+                    taller_a_remover = st.selectbox("1. Selecciona el taller que deseas dar de baja por completo:", talleres_activos, key="select_taller_baja")
                     
-                    # Usamos una casilla de confirmación nativa para disparar la acción del botón HTML
-                    confirmar_clic_html = st.checkbox("👉 Marca esta casilla para activar el botón de guardado permanente", value=False, key="check_activar_html")
+                    # Calcular el impacto (cuántas filas están ligadas a ese taller)
+                    filas_afectadas = len(df_original[df_original[COL_TALLER] == Taller_a_remover])
                     
-                    # Pintamos el botón HTML nativo para romper la inversión de colores del celular
-                    st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
+                    st.error(f"🚨 ATENCIÓN: Al eliminar el taller '{taller_a_remover}', se borrarán también de forma automática las {filas_afectadas} asistencias asociadas a él.")
                     
-                    if confirmar_clic_html:
-                        df_resultado = df_original.drop(index=registros_a_eliminar)
-                        if guardar_en_github(df_resultado, archivo_sha, f"Admin: Eliminación de {len(registros_a_eliminar)} registros individuales del día {fecha_seleccionada}"):
-                            st.success("🎉 ¡Los registros seleccionados han sido removidos con éxito de GitHub!")
+                    confirmar_clic_html_taller = st.checkbox("👉 Marca esta casilla para habilitar la remoción del taller", value=False, key="check_activar_html_taller")
+                    st.markdown('<button class="boton-borrado-html">❌ ELIMINAR TALLER DE LA BASE DE DATOS</button>', unsafe_allow_html=True)
+                    
+                    if confirmar_clic_html_taller:
+                        # Filtrar la base de datos removiendo todas las filas del taller seleccionado
+                        df_sin_taller = df_original[df_original[COL_TALLER] != Taller_a_remover]
+                        
+                        if guardar_en_github(df_sin_taller, archivo_sha, f"Admin: Baja definitiva del taller {taller_a_remover} y sus registros"):
+                            st.success(f"🎉 ¡El taller '{taller_a_remover}' y todas sus asistencias han sido eliminados con éxito!")
                             st.rerun()
                 else:
-                    st.info("💡 Selecciona una o más casillas de la lista superior cuando desees borrar a alguien.")
+                    st.info("💡 No hay talleres registrados en la base de datos de Excel para remover.")
             else:
-                st.info("No se encontraron registros para la fecha seleccionada.")
-        else:
-            st.info("💡 La base de datos está completamente vacía. No hay registros que borrar.")
-            
+                st.info("💡 La base de datos está vacía. Registra asistencias primero para poder gestionar sus talleres.")
+                
     elif clave_input != "":
         st.error("❌ Clave incorrecta. No tienes autorización para realizar esta acción.")
 
@@ -432,4 +463,3 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
-
