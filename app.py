@@ -91,7 +91,7 @@ st.markdown("""
             box-shadow: 0px 4px 10px rgba(10, 37, 64, 0.15) !important;
             transform: translateY(-1px);
         }
-        /* 🚨 REGLA DE MAXIMA PRIORIDAD: TEXTO BLANCO EN TODOS LOS BOTONES DE FORMULARIOS PARA CELULARES 🚨 */
+        /* REGLA DE MAXIMA PRIORIDAD: TEXTO BLANCO EN TODOS LOS BOTONES PARA CELULARES */
         div[data-testid="stForm"] button p, div[data-testid="stForm"] button span, .stButton button p, .stButton button span {
             color: #FFFFFF !important;
             font-weight: 700 !important;
@@ -218,7 +218,7 @@ st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe
 st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
 # --- SECCIÓN A: CALENDARIO DE ACTIVIDADES CON HORARIO DIGITAL ---
-with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (CON HORARIOS)", expanded=False):
+with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (OPCIONAL)", expanded=False):
     st.write("Planifica qué alumnos asistirán, definiendo la hora de inicio y la duración del bloque.")
     with st.form("form_calendario_independiente"):
         prog_fecha = st.date_input("FECHA PROGRAMADA", datetime.now())
@@ -277,61 +277,117 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (CON HORARIOS)"
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL ---
-st.markdown("### 📝 2. PASE DE LISTA BASADO EN LO PROGRAMADO")
-fecha_lista_buscar = st.date_input("Selecciona la fecha a evaluar:", datetime.now()).strftime("%d/%m/%Y")
+# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL (CON OPCIÓN DIRECTA) ---
+st.markdown("### 📝 2. REALIZAR PASE DE LISTA REAL")
 
-# Buscar si existen alumnos citados en el archivo calendario para esta fecha
-df_citados_hoy = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar]
+# Selector del método de pase de lista
+metodo_registro = st.radio(
+    "¿Cómo deseas pasar asistencia hoy?",
+    ["A partir de lo Programado en Calendario", "Registrar Actividad Directa (Sin Programar)"],
+    horizontal=True
+)
 
-if df_citados_hoy.empty:
-    st.info(f"💡 No hay ninguna actividad agendada en el calendario para el día {fecha_lista_buscar}. Por favor programa una en la sección superior.")
+fecha_lista_buscar = st.date_input("Selecciona la fecha de la actividad:", datetime.now()).strftime("%d/%m/%Y")
+
+# MODALIDAD 1: BASADO EN EL CALENDARIO
+if metodo_registro == "A partir de lo Programado en Calendario":
+    df_citados_hoy = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar]
+    
+    if df_citados_hoy.empty:
+        st.info(f"💡 No hay ninguna actividad agendada en el calendario para el día {fecha_lista_buscar}. Cambia la opción de arriba a 'Actividad Directa' para pasar lista sin planeación.")
+    else:
+        taller_programado = df_citados_hoy[COL_TALLER].iloc[0]
+        horas_programadas = df_citados_hoy[COL_HORAS].iloc[0]
+        horario_programado = df_citados_hoy["HORARIO"].iloc[0] if "HORARIO" in df_citados_hoy.columns else ""
+        
+        actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
+        st.success(f"📚 Taller Citado en Calendario: **{actividad_con_horario}** ({horas_programadas} horas)")
+        
+        with st.form("formulario_asistencia_real_cal"):
+            st.write("📋 **Lista basada en calendario:** Las casillas muestran solo a los citados. **Desmarca a quien haya faltado**.")
+            
+            st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+            col_r_izq, col_r_der = st.columns(2)
+            
+            pase_lista_checks = {}
+            for i, (idx, fila) in enumerate(df_citados_hoy.drop_duplicates(subset=[COL_ASISTENCIA]).iterrows()):
+                nombre_alumno = fila[COL_ASISTENCIA]
+                if i % 2 == 0:
+                    with col_r_izq:
+                        pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_c_{idx}")
+                else:
+                    with col_r_der:
+                        pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_c_{idx}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            boton_guardar_asistencia_cal = st.form_submit_button("💾 Guardar Asistencia (Calendario)")
+
+        if boton_guardar_asistencia_cal:
+            asistentes_reales = [nombre for nombre, asistio in pase_lista_checks.items() if asistio]
+            if not asistentes_reales:
+                st.warning("⚠️ Debes registrar al menos una asistencia.")
+            else:
+                nuevos_registros_asistencia = []
+                for integrante in asistentes_reales:
+                    nuevos_registros_asistencia.append({
+                        COL_FECHA: fecha_lista_buscar,
+                        COL_ASISTENCIA: integrante,
+                        COL_TALLER: actividad_con_horario,
+                        COL_HORAS: float(horas_programadas)
+                    })
+                df_final_asistencia = pd.concat([df_original, pd.DataFrame(nuevos_registros_asistencia)], ignore_index=True)
+                if guardar_archivo_github(EXCEL_FILE, df_final_asistencia, archivo_sha, f"Asistencia: Registro real de {actividad_con_horario} - {fecha_lista_buscar}"):
+                    st.success(f"🎉 ¡Éxito! Se han guardado {len(asistentes_reales)} asistencias en {EXCEL_FILE}.")
+                    st.rerun()
+
+# MODALIDAD 2: REGISTRO DIRECTO TRADICIONAL (COMO ANTES)
 else:
-    # Obtener los datos planeados
-    taller_programado = df_citados_hoy[COL_TALLER].iloc[0]
-    horas_programadas = df_citados_hoy[COL_HORAS].iloc[0]
-    horario_programado = df_citados_hoy["HORARIO"].iloc[0] if "HORARIO" in df_citados_hoy.columns else ""
-    
-    actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
-    st.success(f"📚 Taller Citado en Calendario: **{actividad_con_horario}** ({horas_programadas} horas)")
-    
-    with st.form("formulario_asistencia_real"):
-        st.write("📋 **Lista de asistencia inteligente:** Las casillas ya están marcadas con los que citaste. **Desmarca a las personas que hayan faltado**.")
+    with st.form("formulario_asistencia_real_directa"):
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            taller_directo = st.selectbox("TALLER IMPARTIDO", TALLERES_FIJOS, key="taller_dir")
+        with col_d2:
+            horas_directas = st.number_input("HORAS DEL TALLER", min_value=0.25, max_value=8.0, value=1.5, step=0.25, key="horas_dir")
+            
+        st.markdown("---")
+        st.markdown("### 📋 Lista de Todos los Integrantes")
+        st.write("*(Por defecto todos están marcados. Desmarca a los que no asistieron hoy)*")
+        
+        # Filtro de búsqueda rápido por nombre
+        buscar_nombre_dir = st.text_input("🔍 Buscar integrante por nombre:").strip().upper()
+        integrantes_filtrados_dir = [n for n in INTEGRANTES_FIJOS if buscar_nombre_dir in n] if buscar_nombre_dir else INTEGRANTES_FIJOS
         
         st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-        col_r_izq, col_r_der = st.columns(2)
+        col_rd_izq, col_rd_der = st.columns(2)
         
-        pase_lista_checks = {}
-        for i, (idx, fila) in enumerate(df_citados_hoy.iterrows()):
-            nombre_alumno = fila[COL_ASISTENCIA]
+        pase_lista_checks_dir = {}
+        for i, nombre in enumerate(integrantes_filtrados_dir):
             if i % 2 == 0:
-                with col_r_izq:
-                    pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_{idx}")
+                with col_rd_izq:
+                    pase_lista_checks_dir[nombre] = st.checkbox(nombre, value=True, key=f"chk_dir_{nombre}")
             else:
-                with col_r_der:
-                    pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_{idx}")
+                with col_rd_der:
+                    pase_lista_checks_dir[nombre] = st.checkbox(nombre, value=True, key=f"chk_dir_{nombre}")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        boton_guardar_asistencia_final = st.form_submit_button("💾 Guardar y Registrar Asistencia en el Historial")
+        boton_guardar_asistencia_dir = st.form_submit_button("💾 Registrar Asistencia del Grupo (Directo)")
 
-    if boton_guardar_asistencia_final:
-        asistentes_reales = [nombre for nombre, asistio in pase_lista_checks.items() if asistio]
-        
-        if not asistentes_reales:
-            st.warning("⚠️ Al desmarcar a todos, estás indicando que nadie asistió. Debes procesar al menos una asistencia.")
+    if boton_guardar_asistencia_dir:
+        asistentes_reales_dir = [nombre for nombre, asistio in pase_lista_checks_dir.items() if asistio]
+        if not asistentes_reales_dir:
+            st.warning("⚠️ Debes seleccionar al menos a un integrante para procesar la lista.")
         else:
-            nuevos_registros_asistencia = []
-            for integrante in asistentes_reales:
-                nuevos_registros_asistencia.append({
+            nuevos_registros_directos = []
+            for integrante in asistentes_reales_dir:
+                nuevos_registros_directos.append({
                     COL_FECHA: fecha_lista_buscar,
                     COL_ASISTENCIA: integrante,
-                    COL_TALLER: actividad_con_horario,
-                    COL_HORAS: float(horas_programadas)
+                    COL_TALLER: taller_directo,
+                    COL_HORAS: float(horas_directas)
                 })
-            
-            df_final_asistencia = pd.concat([df_original, pd.DataFrame(nuevos_registros_asistencia)], ignore_index=True)
-            if guardar_archivo_github(EXCEL_FILE, df_final_asistencia, archivo_sha, f"Asistencia: Registro real de {actividad_con_horario} - {fecha_lista_buscar}"):
-                st.success(f"🎉 ¡Éxito! Se han guardado de forma permanente {len(asistentes_reales)} registros de asistencia en {EXCEL_FILE}.")
+            df_final_asistencia_dir = pd.concat([df_original, pd.DataFrame(nuevos_registros_directos)], ignore_index=True)
+            if guardar_archivo_github(EXCEL_FILE, df_final_asistencia_dir, archivo_sha, f"Asistencia: Registro Directo de {taller_directo} - {fecha_lista_buscar}"):
+                st.success(f"🎉 ¡Éxito! Se guardaron {len(asistentes_reales_dir)} registros directamente en tu archivo Excel.")
                 st.rerun()
 
 # --- SECCIÓN C: HISTORIAL VISUAL EN TIEMPO REAL CON FILTRADO ---
@@ -430,4 +486,3 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
-
