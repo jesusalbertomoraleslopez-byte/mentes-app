@@ -155,7 +155,7 @@ INTEGRANTES_FIJOS = [
     "TOMASITA MARÍA ENRIQUETA RIVERA DEL BOSQUE"
 ]
 
-# --- NUEVA LISTA ACTUALIZADA DE TALLERES ---
+# --- LISTA OFICIAL Y FIJA DE TALLERES ---
 TALLERES_FIJOS = [
     "AJEDREZ",
     "ARTE",
@@ -189,6 +189,7 @@ def conectar_github():
 def cargar_menus_y_datos():
     repo = conectar_github()
     try:
+        # Forzar una lectura directa y limpia rompiendo cualquier caché
         file_content = repo.get_contents(EXCEL_FILE)
         df = pd.read_excel(io.BytesIO(file_content.decoded_content))
         sha = file_content.sha
@@ -201,6 +202,9 @@ def cargar_menus_y_datos():
     talleres = sorted(list(set(TALLERES_FIJOS + talleres_excel)))
     
     return integrantes, talleres, df, sha
+
+# Cargar datos iniciales con limpieza estricta
+lista_integrantes, lista_talleres, df_original, archivo_sha = cargar_menus_y_datos()
 
 def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
     repo = conectar_github()
@@ -218,9 +222,6 @@ def guardar_en_github(df_nuevo, sha_actual, mensaje_commit):
     except Exception as e:
         st.error(f"❌ Error al guardar en GitHub: {e}")
         return False
-
-# Cargar datos iniciales
-lista_integrantes, lista_talleres, df_original, archivo_sha = cargar_menus_y_datos()
 
 # --- ENCABEZADO VISUAL INSTITUCIONAL ---
 col_logo_1, col_logo_2, col_logo_3 = st.columns([1, 1.2, 1])
@@ -322,6 +323,7 @@ st.markdown("### 📋 Últimos Registros Guardados (Historial)")
 
 if not df_original.empty:
     try:
+        # Generar un archivo de ordenamiento cronológico ascendente exacto
         df_ordenado = df_original.copy()
         df_ordenado['FECHA_DATETIME'] = pd.to_datetime(df_ordenado[COL_FECHA], format="%d/%m/%Y", errors='coerce')
         df_ordenado = df_ordenado.sort_values(by='FECHA_DATETIME', ascending=True)
@@ -329,6 +331,7 @@ if not df_original.empty:
     except Exception:
         df_ordenado = df_original
 
+    # Convertir el DataFrame limpio y completo en bytes de Excel en tiempo real
     output_descarga = io.BytesIO()
     with pd.ExcelWriter(output_descarga, engine='openpyxl') as writer:
         df_ordenado.to_excel(writer, index=False)
@@ -339,7 +342,8 @@ if not df_original.empty:
         data=excel_completo_bytes,
         file_name=f"asistencia_completa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
+        use_container_width=True,
+        key="btn_descarga_masiva_limpia"  # Llave única para romper la memoria caché del navegador
     )
     
     st.markdown("<br>", unsafe_allow_html=True)
@@ -404,7 +408,7 @@ with st.expander("🚨 Panel de Administración - Control de Historial y Tallere
                     taller_a_remover = st.selectbox("1. Selecciona el taller que deseas dar de baja por completo:", talleres_activos, key="select_taller_baja")
                     filas_affected = len(df_original[df_original[COL_TALLER] == taller_a_remover])
                     
-                    st.error(f"🚨 ATENCIÓN: Al eliminar el taller '{taller_a_remover}', se borrarán también de forma automática las {filas_affected} asistencias asociadas a él.")
+                    st.error(f"🚨 ATENCIÓN: Al... el taller '{taller_a_remover}', se borrarán también de forma automática las {filas_affected} asistencias asociadas a él.")
                     
                     confirmar_clic_html_taller = st.checkbox("👉 Marca esta casilla para habilitar la remoción del taller", value=False, key="check_activar_html_taller")
                     st.markdown('<button class="boton-borrado-html">❌ ELIMINAR TALLER DE LA BASE DE DATOS</button>', unsafe_allow_html=True)
@@ -431,4 +435,5 @@ st.markdown("""
         <a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a>
     </div>
 """, unsafe_allow_html=True)
+
 
