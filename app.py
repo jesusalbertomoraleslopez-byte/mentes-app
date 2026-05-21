@@ -155,7 +155,7 @@ INTEGRANTES_FIJOS = [
     "TOMASITA MARÍA ENRIQUETA RIVERA DEL BOSQUE"
 ]
 
-# --- NUEVA LISTA ACTUALIZADA DE TALLERES SEGÚN TU IMAGEN ---
+# --- NUEVA LISTA ACTUALIZADA DE TALLERES ---
 TALLERES_FIJOS = [
     "AJEDREZ",
     "ARTE",
@@ -432,6 +432,3 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-
-    </div>
-""", unsafe_allow_html=True)
