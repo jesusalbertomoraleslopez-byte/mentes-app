@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from github import Github
 import io
 
@@ -8,7 +8,7 @@ import io
 st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
 EXCEL_FILE = "asistencia.xlsx"
-CALENDARIO_FILE = "calendario.xlsx"  # Nuevo archivo independiente para la planeación
+CALENDARIO_FILE = "calendario.xlsx"  # Archivo independiente para la planeación
 URL_LOGO = "logo-mentes.png"
 
 # --- INYECTAR DISEÑO VISUAL INSPIRADO EN LA WEB OFICIAL ---
@@ -134,7 +134,7 @@ TALLERES_FIJOS = [
     "MOVIMIENTO VITAL EXPRESIVO", "TALLER \"SÍ PUEDO\"", "TALLER DE COMUNICACIÓN", "TEATRO", "VIDA DIARIA"
 ]
 
-# Columnas exactas del archivo original (Se quedan idénticas)
+# Columnas exactas del archivo original
 COL_FECHA = "FECHA"
 COL_ASISTENCIA = "INTEGRANTE / TALLER"
 COL_TALLER = "ACTIVIDAD"
@@ -162,18 +162,18 @@ def cargar_datos_sistema():
         df_asistencia = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
         sha_asistencia = None
 
-    # 2. Cargar archivo de Calendario Independiente
+    # 2. Cargar archivo de Calendario Independiente (Se añade columna HORARIO para control interno)
     try:
         file_calendario = repo.get_contents(CALENDARIO_FILE)
         df_calendario = pd.read_excel(io.BytesIO(file_calendario.decoded_content))
         sha_calendario = file_calendario.sha
     except Exception:
-        df_calendario = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS])
+        df_calendario = pd.DataFrame(columns=[COL_FECHA, COL_ASISTENCIA, COL_TALLER, COL_HORAS, "HORARIO"])
         sha_calendario = None
 
     return df_asistencia, sha_asistencia, df_calendario, sha_calendario
 
-# Cargar ambos dataframes de manera aislada
+# Cargar dataframes
 df_original, archivo_sha, df_calendario, sha_calendario = cargar_datos_sistema()
 
 def guardar_archivo_github(nombre_archivo, df_nuevo, sha_actual, mensaje_commit):
@@ -200,13 +200,28 @@ with col_logo_2:
 st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
-# --- SECCIÓN A: CALENDARIO DE ACTIVIDADES POR DÍA (NUEVO ARCHIVO SEPARADO) ---
-with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (NUEVO ARCHIVO)", expanded=False):
-    st.write("Planifica qué alumnos asistirán a qué talleres en fechas específicas. Esto guardará datos en `calendario.xlsx`.")
+# --- SECCIÓN A: CALENDARIO DE ACTIVIDADES CON HORARIO DIGITAL ---
+with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (CON HORARIOS)", expanded=False):
+    st.write("Planifica qué alumnos asistirán, definiendo la hora de inicio y la duración del bloque.")
     with st.form("form_calendario_independiente"):
         prog_fecha = st.date_input("FECHA PROGRAMADA", datetime.now())
         prog_taller = st.selectbox("TALLER A IMPARTIR", TALLERES_FIJOS)
-        prog_horas = st.number_input("HORAS ESTIMADAS", min_value=0.25, max_value=8.0, value=1.0, step=0.25)
+        
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            prog_hora_inicio = st.time_input("HORA DE INICIO", time(9, 0)) # Por defecto 9:00 AM
+        with col_t2:
+            prog_horas_duracion = st.number_input("CANTIDAD DE HORAS (DURACIÓN)", min_value=0.25, max_value=8.0, value=1.5, step=0.25)
+        
+        # Calcular automáticamente la hora de término para informar al usuario en pantalla
+        minutos_totales = int(prog_horas_duracion * 60)
+        dt_inicio = datetime.combine(prog_fecha, prog_hora_inicio)
+        dt_termino = dt_inicio + timedelta(minutes=minutos_totales)
+        hora_fin_str = dt_termino.strftime("%H:%M")
+        hora_ini_str = prog_hora_inicio.strftime("%H:%M")
+        horario_completo = f"{hora_ini_str} - {hora_fin_str}"
+        
+        st.info(f"⏰ El bloque de actividad quedará agendado de **{horario_completo}**.")
         
         st.markdown("### 👥 Selecciona los Integrantes Programados:")
         st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
@@ -235,16 +250,17 @@ with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO (NUEVO ARCHIVO)
                     COL_FECHA: fecha_prog_str,
                     COL_ASISTENCIA: integrante,
                     COL_TALLER: prog_taller,
-                    COL_HORAS: float(prog_horas)
+                    COL_HORAS: float(prog_horas_duracion),
+                    "HORARIO": horario_completo  # Guardado en columna interna del calendario
                 })
             df_nuevo_cal = pd.concat([df_calendario, pd.DataFrame(nuevas_filas_cal)], ignore_index=True)
-            if guardar_archivo_github(CALENDARIO_FILE, df_nuevo_cal, sha_calendario, f"Calendario: Se agendó {prog_taller} para {fecha_prog_str}"):
-                st.success(f"✨ ¡Agenda guardada con éxito en {CALENDARIO_FILE} para {len(seleccionados)} integrantes!")
+            if guardar_archivo_github(CALENDARIO_FILE, df_nuevo_cal, sha_calendario, f"Calendario: Se agendó {prog_taller} ({horario_completo}) para {fecha_prog_str}"):
+                st.success(f"✨ ¡Agenda guardada con éxito en {CALENDARIO_FILE}!")
                 st.rerun()
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL (BASADO EN EL CALENDARIO) ---
+# --- SECCIÓN B: FORMULARIO DE ASISTENCIA REAL ---
 st.markdown("### 📝 2. PASE DE LISTA BASADO EN LO PROGRAMADO")
 fecha_lista_buscar = st.date_input("Selecciona la fecha a evaluar:", datetime.now()).strftime("%d/%m/%Y")
 
@@ -254,10 +270,14 @@ df_citados_hoy = df_calendario[df_calendario[COL_FECHA] == fecha_lista_buscar]
 if df_citados_hoy.empty:
     st.info(f"💡 No hay ninguna actividad agendada en el calendario para el día {fecha_lista_buscar}. Por favor programa una en la sección superior.")
 else:
-    # Obtener dinámicamente el taller y las horas que se habían planeado
+    # Obtener los datos planeados
     taller_programado = df_citados_hoy[COL_TALLER].iloc[0]
     horas_programadas = df_citados_hoy[COL_HORAS].iloc[0]
-    st.success(f"📚 Taller Citado en Calendario: **{taller_programado}** ({horas_programadas} horas)")
+    # Si el archivo del calendario ya incluye horarios, lo extrae; si es viejo, pone vacío
+    horario_programado = df_citados_hoy["HORARIO"].iloc[0] if "HORARIO" in df_citados_hoy.columns else ""
+    
+    texto_taller_visual = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
+    st.success(f"📚 Taller Citado en Calendario: **{texto_taller_visual}** ({horas_programadas} horas)")
     
     with st.form("formulario_asistencia_real"):
         st.write("📋 **Lista de asistencia inteligente:** Las casillas ya están marcadas con los que citaste. **Desmarca a las personas que hayan faltado**.")
@@ -266,12 +286,10 @@ else:
         col_r_izq, col_r_der = st.columns(2)
         
         pase_lista_checks = {}
-        # Mostrar EN EXCLUSIVA a los que se registraron en el calendario para este día
         for i, (idx, fila) in enumerate(df_citados_hoy.iterrows()):
             nombre_alumno = fila[COL_ASISTENCIA]
             if i % 2 == 0:
                 with col_r_izq:
-                    # Aparecen checkeados por defecto. Si el usuario desmarca, se asume Falta (no se guarda).
                     pase_lista_checks[nombre_alumno] = st.checkbox(nombre_alumno, value=True, key=f"real_{idx}")
             else:
                 with col_r_der:
@@ -281,24 +299,25 @@ else:
         boton_guardar_asistencia_final = st.form_submit_button("💾 Guardar y Registrar Asistencia en el Historial")
 
     if boton_guardar_asistencia_final:
-        # Filtrar solo los nombres que se quedaron con la casilla verificada (Asistieron)
         asistentes_reales = [nombre for nombre, asistio in pase_lista_checks.items() if asistio]
         
         if not asistentes_reales:
             st.warning("⚠️ Al desmarcar a todos, estás indicando que nadie asistió. Debes procesar al menos una asistencia.")
         else:
+            # Formatear el nombre final de la actividad incluyendo el horario para cumplir con las 4 columnas de asistencia
+            actividad_con_horario = f"{taller_programado} ({horario_programado})" if horario_programado else taller_programado
+            
             nuevos_registros_asistencia = []
             for integrante in asistentes_reales:
                 nuevos_registros_asistencia.append({
                     COL_FECHA: fecha_lista_buscar,
                     COL_ASISTENCIA: integrante,
-                    COL_TALLER: taller_programado,
+                    COL_TALLER: actividad_con_horario,
                     COL_HORAS: float(horas_programadas)
                 })
             
-            # Guardar ÚNICAMENTE los que asistieron en el archivo de asistencia tradicional
             df_final_asistencia = pd.concat([df_original, pd.DataFrame(nuevos_registros_asistencia)], ignore_index=True)
-            if guardar_archivo_github(EXCEL_FILE, df_final_asistencia, archivo_sha, f"Asistencia: Registro real de {taller_programado} - {fecha_lista_buscar}"):
+            if guardar_archivo_github(EXCEL_FILE, df_final_asistencia, archivo_sha, f"Asistencia: Registro real de {actividad_con_horario} - {fecha_lista_buscar}"):
                 st.success(f"🎉 ¡Éxito! Se han guardado de forma permanente {len(asistentes_reales)} registros de asistencia en {EXCEL_FILE}.")
                 st.rerun()
 
@@ -345,7 +364,7 @@ if not df_original.empty:
 else:
     st.info("💡 Aún no hay registros guardados en el archivo Excel de Asistencia.")
 
-# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR REGISTROS / TALLERES) ---
+# --- SECCIÓN D: ADMINISTRACIÓN DE SEGURIDAD (BORRAR REGISTROS) ---
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("🚨 Panel de Administración - Control de Historial", expanded=False):
     st.write("Módulo de alta seguridad exclusivo para la remoción precisa de información errónea en la base de datos de asistencia.")
