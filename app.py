@@ -5,8 +5,8 @@ from github import Github
 import io
 import calendar
 
-# Configuración estética de la pestaña del navegador (Ancho completo para el diseño paralelo)
-st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="wide")
+# Configuración de la pestaña del navegador (Centered para mejor lectura en celulares)
+st.set_page_config(page_title="Mentes Con Alas - Asistencia", page_icon="🦅", layout="centered")
 
 EXCEL_FILE = "asistencia.xlsx"
 CALENDARIO_FILE = "calendario.xlsx"
@@ -20,7 +20,7 @@ st.markdown("""
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
         .titulo-web { text-align: center; color: #0A2540; font-size: 32px; font-weight: 700; margin-bottom: 5px; }
-        .subtitulo-web { text-align: center; color: #627D98; font-size: 16px; margin-bottom: 30px; }
+        .subtitulo-web { text-align: center; color: #627D98; font-size: 16px; margin-bottom: 20px; }
         h3 { color: #0A2540 !important; font-weight: 600 !important; margin-top: 15px !important; }
         div[data-testid="stExpander"] {
             border: 1px solid #E4E7EB !important;
@@ -40,14 +40,14 @@ st.markdown("""
         .footer-web a { color: #0A2540 !important; text-decoration: none; font-weight: bold; }
         .boton-borrado-html { background-color: #FFFFFF !important; color: #D32F2F !important; border: 3px solid #D32F2F !important; padding: 14px 20px !important; text-align: center !important; font-size: 16px !important; font-weight: 800 !important; border-radius: 8px !important; width: 100% !important; text-transform: uppercase !important; box-shadow: 0px 4px 6px rgba(0,0,0,0.1) !important; }
         
-        /* 📅 ESTILOS DE ALTO CONTRASTE PARA EL CALENDARIO MATRICIAL NATIVO 📅 */
-        .tabla-calendario { width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); }
-        .tabla-calendario th { background-color: #0A2540; color: #FFFFFF; padding: 12px; font-weight: 700; text-align: center; font-size: 14px; border: 1px solid #1F3B5C; }
-        .tabla-calendario td { width: 14.28%; height: 100px; vertical-align: top; padding: 8px; border: 1px solid #E4E7EB; position: relative; background-color: #FFFFFF; }
-        .num-dia { font-weight: 700; color: #627D98; font-size: 14px; margin-bottom: 4px; display: block; }
+        /* 📅 DISEÑO ADAPTATIVO (RESPONSIVE) PARA EL CALENDARIO MATRICIAL NATIVO 📅 */
+        .tabla-calendario { width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); table-layout: fixed; }
+        .tabla-calendario th { background-color: #0A2540; color: #FFFFFF; padding: 10px 5px; font-weight: 700; text-align: center; font-size: 13px; border: 1px solid #1F3B5C; }
+        .tabla-calendario td { height: 90px; vertical-align: top; padding: 6px 4px; border: 1px solid #E4E7EB; position: relative; background-color: #FFFFFF; overflow: hidden; }
+        .num-dia { font-weight: 700; color: #627D98; font-size: 13px; margin-bottom: 3px; display: block; }
         .dia-vacio { background-color: #F8FAFC !important; }
         .dia-hoy { background-color: #EFF6FF !important; border: 2px solid #3B82F6 !important; }
-        .evento-tag { background-color: #E0F2FE !important; color: #0369A1 !important; border-left: 4px solid #0284C7 !important; padding: 4px 6px !important; font-size: 11px !important; font-weight: 700 !important; border-radius: 4px !important; margin-top: 4px !important; line-height: 1.2 !important; word-wrap: break-word !important; }
+        .evento-tag { background-color: #E0F2FE !important; color: #0369A1 !important; border-left: 3px solid #0284C7 !important; padding: 2px 4px !important; font-size: 10px !important; font-weight: 700 !important; border-radius: 3px !important; margin-top: 3px !important; line-height: 1.1 !important; white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -127,11 +127,13 @@ with col_logo_2:
 st.markdown('<div class="titulo-web">Control de Asistencia Grupal</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo-web">Comunidad de Vida para Adultos con Parálisis Cerebral</div>', unsafe_allow_html=True)
 
-# 🚨 DIVISIÓN DE PANTALLA: CONTROLES IZQUIERDA | CALENDARIO GRÁFICO DERECHA 🚨
-col_izquierda, col_derecha = st.columns([1.1, 0.9], gap="large")
+# 🚨 PESTAÑAS DE NAVEGACIÓN SUPERIOR: OPTIMIZADO PARA MÓVILES 🚨
+tab_asistencia, tab_calendario = st.tabs(["📊 REGISTRO DE ASISTENCIA", "📅 CALENDARIO MENSUAL DE ACTIVIDADES"])
 
-with col_izquierda:
-    st.markdown("### 🛠️ Gestión y Operaciones")
+# ==========================================
+# VISTA 1: SISTEMA DE CONTROL DE ASISTENCIA
+# ==========================================
+with tab_asistencia:
     
     # --- FORMULARIO 1: PROGRAMAR ACTIVIDADES ---
     with st.expander("📅 1. PROGRAMAR ACTIVIDADES EN EL CALENDARIO", expanded=False):
@@ -189,7 +191,7 @@ with col_izquierda:
                 col_m_izq, col_m_der = st.columns(2)
                 nuevos_estados_cal = {}
                 for i, nombre in enumerate(INTEGRANTES_FIJOS):
-                    ya_citado = name in alumnos_citados_actualmente if 'name' in locals() else nombre in alumnos_citados_actualmente
+                    ya_citado = nombre in alumnos_citados_actualmente
                     with col_m_izq if i % 2 == 0 else col_m_der:
                         nuevos_estados_cal[nombre] = st.checkbox(nombre, value=ya_citado, key=f"mod_c_{nombre}")
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -271,10 +273,58 @@ with col_izquierda:
                 if guardar_archivo_github(EXCEL_FILE, df_f_dir, archivo_sha, f"Directo: {t_dir}"):
                     st.success("🎉 ¡Guardado!"); st.rerun()
 
-with col_derecha:
-    st.markdown("### 📅 Calendario Mensual de Actividades")
+    # --- HISTORIAL Y BUSCADOR ---
+    st.markdown("---"); st.markdown("### 📋 Historial y Buscador de Asistencias")
+    if not df_original.empty:
+        df_vis = df_original.copy()
+        try:
+            df_vis['FECHA_DT'] = pd.to_datetime(df_vis[COL_FECHA], format="%d/%m/%Y", errors='coerce')
+            df_vis = df_vis.sort_values(by='FECHA_DT', ascending=False).drop(columns=['FECHA_DT'])
+        except Exception: pass
+        
+        filtro = st.text_input("🔍 Filtro en tiempo real:").strip().upper()
+        if filtro:
+            mask = df_vis[COL_FECHA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_ASISTENCIA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_TALLER].astype(str).str.upper().str.contains(filtro)
+            df_f_tabla = df_vis[mask]
+        else: df_f_tabla = df_vis
+        
+        st.dataframe(df_f_tabla, use_container_width=True)
+        output_d = io.BytesIO()
+        with pd.ExcelWriter(output_d, engine='openpyxl') as writer:
+            df_vis.sort_values(by=COL_FECHA, ascending=True).to_excel(writer, index=False)
+        st.download_button(label="📥 Descargar Base de Datos Completa", data=output_d.getvalue(), file_name=f"asistencia_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    else: st.info("💡 Archivo vacío.")
+
+    with st.expander("🚨 Panel de Administración - Control de Historial", expanded=False):
+        clave = st.text_input("Contraseña:", type="password")
+        if clave == CLAVE_BORRADO:
+            if not df_original.empty:
+                fechas_u = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
+                f_sel = st.selectbox("Fecha error:", fechas_u)
+                df_dia_b = df_original[df_original[COL_FECHA] == f_sel].copy()
+                
+                st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
+                b_regs = []
+                for idx, fila in df_dia_b.iterrows():
+                    if st.checkbox(f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]}", value=False, key=f"del_{idx}"): b_regs.append(idx)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                if b_regs:
+                    st.error(f"Se eliminarán {len(b_regs)} filas.")
+                    if st.checkbox("Confirmar acción", value=False):
+                        st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
+                        df_res = df_original.drop(index=b_regs)
+                        if guardar_archivo_github(EXCEL_FILE, df_res, archivo_sha, "Admin: Borrado"):
+                            st.success("Eliminado con éxito!"); st.rerun()
+
+# ==========================================
+# VISTA 2: CALENDARIO EN PANTALLA COMPLETA
+# ==========================================
+with tab_calendario:
+    st.markdown("### 🗓️ Agenda Mensual de Actividades")
+    st.write("Navega por los meses del año para revisar las planificaciones cargadas en el archivo de Excel:")
     
-    # Selectores nativos para cambiar de mes y año de forma interactiva
+    # Controles de mes y año
     hoy = datetime.now()
     c_m1, c_m2 = st.columns(2)
     with c_m1:
@@ -284,11 +334,11 @@ with col_derecha:
     with c_m2:
         anio_sel = st.selectbox("Ver Año:", [hoy.year, hoy.year + 1], index=0)
         
-    # Construcción matemática de la matriz de calendario (Lunes a Domingo)
+    # Construcción de la matriz mensual nativa
     cal_objeto = calendar.Calendar(firstweekday=0)
     semanas_matriz = cal_objeto.monthdayscalendar(anio_sel, mes_num)
     
-    # Mapear las actividades programadas en el Excel para el mes en pantalla
+    # Mapear los eventos guardados en el Excel de planificación
     diccionario_eventos = {}
     if not df_calendario.empty:
         df_unicos_cal = df_calendario.drop_duplicates(subset=[COL_FECHA, COL_TALLER, "HORARIO"])
@@ -302,9 +352,9 @@ with col_derecha:
                     diccionario_eventos[dia_key].append(f"<b>{fila[COL_TALLER]}</b><br>⏱️ {fila['HORARIO']}")
             except: pass
 
-    # Crear el código HTML nativo de la cuadrícula
+    # Código HTML responsivo para móviles de la tabla
     html_codigo = f"<table class='tabla-calendario'>"
-    html_codigo += "<tr><th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th></tr>"
+    html_codigo += "<tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>"
     
     for semana in semanas_matriz:
         html_codigo += "<tr>"
@@ -312,67 +362,19 @@ with col_derecha:
             if dia == 0:
                 html_codigo += "<td class='dia-vacio'></td>"
             else:
-                # Resaltar el día de hoy con color celeste sutil
                 clase_celda = ""
                 if dia == hoy.day and mes_num == hoy.month and anio_sel == hoy.year:
                     clase_celda = "class='dia-hoy'"
                 
                 html_codigo += f"<td {clase_celda}><span class='num-dia'>{dia}</span>"
-                
-                # Inyectar las actividades agendadas dentro de la celda del día correspondiente
                 if dia in diccionario_eventos:
                     for evento in diccionario_eventos[dia]:
                         html_codigo += f"<div class='evento-tag'>{evento}</div>"
-                        
                 html_codigo += "</td>"
         html_codigo += "</tr>"
     html_codigo += "</table>"
     
-    # Dibujar la matriz en la pantalla
     st.markdown(html_codigo, unsafe_allow_html=True)
 
-# --- SECCIÓN FINALES: HISTORIAL Y ELIMINACIÓN ---
-st.markdown("---"); st.markdown("### 📋 Historial y Buscador de Asistencias")
-if not df_original.empty:
-    df_vis = df_original.copy()
-    try:
-        df_vis['FECHA_DT'] = pd.to_datetime(df_vis[COL_FECHA], format="%d/%m/%Y", errors='coerce')
-        df_vis = df_vis.sort_values(by='FECHA_DT', ascending=False).drop(columns=['FECHA_DT'])
-    except Exception: pass
-    
-    filtro = st.text_input("🔍 Filtro en tiempo real:").strip().upper()
-    if filtro:
-        mask = df_vis[COL_FECHA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_ASISTENCIA].astype(str).str.upper().str.contains(filtro) | df_vis[COL_TALLER].astype(str).str.upper().str.contains(filtro)
-        df_f_tabla = df_vis[mask]
-    else: df_f_tabla = df_vis
-    
-    st.dataframe(df_f_tabla, use_container_width=True)
-    output_d = io.BytesIO()
-    with pd.ExcelWriter(output_d, engine='openpyxl') as writer:
-        df_vis.sort_values(by=COL_FECHA, ascending=True).to_excel(writer, index=False)
-    st.download_button(label="📥 Descargar Base de Datos Completa", data=output_d.getvalue(), file_name=f"asistencia_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-else: st.info("💡 Archivo vacío.")
-
-with st.expander("🚨 Panel de Administración - Control de Historial", expanded=False):
-    clave = st.text_input("Contraseña:", type="password")
-    if clave == CLAVE_BORRADO:
-        if not df_original.empty:
-            fechas_u = sorted(df_original[COL_FECHA].dropna().unique(), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
-            f_sel = st.selectbox("Fecha error:", fechas_u)
-            df_dia_b = df_original[df_original[COL_FECHA] == f_sel].copy()
-            
-            st.markdown('<div class="contenedor-asistencia">', unsafe_allow_html=True)
-            b_regs = []
-            for idx, fila in df_dia_b.iterrows():
-                if st.checkbox(f"👤 {fila[COL_ASISTENCIA]} | 📚 {fila[COL_TALLER]}", value=False, key=f"del_{idx}"): b_regs.append(idx)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            if b_regs:
-                st.error(f"Se eliminarán {len(b_regs)} filas.")
-                if st.checkbox("Confirmar acción", value=False):
-                    st.markdown('<button class="boton-borrado-html">❌ CONFIRMAR ELIMINACIÓN DE REGISTROS</button>', unsafe_allow_html=True)
-                    df_res = df_original.drop(index=b_regs)
-                    if guardar_archivo_github(EXCEL_FILE, df_res, archivo_sha, "Admin: Borrado"):
-                        st.success("Eliminado con éxito!"); st.rerun()
-
+# --- PIE DE PÁGINA INSTITUCIONAL ---
 st.markdown('<div class="footer-web"><hr>Av. Ocampo 1797 ote. Col. Centro Torreón, Coah.<br><b>MENTES CON ALAS ES DONATARIA AUTORIZADA</b><br><a href="https://mentesconalas.org.mx" target="_blank">🌐 Visitar Sitio Web Oficial</a></div>', unsafe_allow_html=True)
