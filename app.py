@@ -75,14 +75,15 @@ html, body, [data-testid="stAppViewContainer"] {
     opacity: 0 !important;
     pointer-events: auto !important;
     width: 100% !important;
-    height: 60px !important;
+    height: 52px !important;
     top: 0 !important; left: 0 !important;
     cursor: pointer !important;
     z-index: 10 !important;
 }
 [data-testid="stSidebar"] .stButton {
     position: relative !important;
-    margin-bottom: -60px !important;
+    margin-top: -54px !important;
+    margin-bottom: 2px !important;
 }
 
 /* ══ MAIN CONTENT ══════════════════════════════════ */
