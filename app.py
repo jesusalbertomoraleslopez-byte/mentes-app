@@ -22,6 +22,7 @@ INTEGRANTES_FILE = "integrantes.xlsx"
 NO_LABORABLES_FILE = "no_laborables.xlsx"
 ACTIVIDADES_FILE = "actividades.xlsx"
 USUARIOS_FILE    = "usuarios.xlsx"
+MAESTROS_FILE    = "maestros.xlsx"
 URL_LOGO        = "logo-mentes.png"
 
 # ══════════════════════════════════════════════════════════════
@@ -371,7 +372,18 @@ def cargar_datos_sistema(_ts=None):
         df_act = pd.DataFrame(t_list, columns=["ACTIVIDAD", "MAESTRO", "COLOR", "ÁREA_IMPACTO"])
         sha_act = None
 
-    return df_a, sha_a, df_c, sha_c, df_i, sha_i, df_n, sha_n, df_u, sha_u, df_act, sha_act
+    # 7. Maestros
+    try:
+        f7 = repo.get_contents(MAESTROS_FILE)
+        df_m = pd.read_excel(io.BytesIO(f7.decoded_content))
+        sha_m = f7.sha
+    except Exception:
+        df_m = pd.DataFrame([
+            {"NOMBRE_COMPLETO": "—", "TELÉFONO": "—", "ESPECIALIDAD": "General", "ESTADO": "Activo"}
+        ])
+        sha_m = None
+
+    return df_a, sha_a, df_c, sha_c, df_i, sha_i, df_n, sha_n, df_u, sha_u, df_act, sha_act, df_m, sha_m
 
 
 def guardar_github(nombre, df, sha, msg):
@@ -395,7 +407,7 @@ def guardar_github(nombre, df, sha, msg):
 # CARGA DE DATOS
 # ══════════════════════════════════════════════════════════════
 with st.spinner("🔄 Conectando..."):
-    df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades = cargar_datos_sistema()
+    df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades, df_maestros, sha_maestros = cargar_datos_sistema()
 
 # Garantizar bases de datos en Github si fueron autogeneradas
 if sha_integrantes is None:
@@ -404,6 +416,8 @@ if sha_usuarios is None:
     guardar_github(USUARIOS_FILE, df_usuarios, None, "Inicializar base de datos de usuarios")
 if sha_actividades is None:
     guardar_github(ACTIVIDADES_FILE, df_actividades, None, "Inicializar base de datos de actividades")
+if sha_maestros is None:
+    guardar_github(MAESTROS_FILE, df_maestros, None, "Inicializar base de datos de maestros")
 
 # ══════════════════════════════════════════════════════════════
 # VARIABLES GLOBALES DINÁMICAS (CATÁLOGOS)
@@ -1476,9 +1490,10 @@ elif pagina_actual == "Integrantes":
 elif pagina_actual == "Mantenimiento":
     st.markdown('<div class="section-title">⚙️ Panel de Mantenimiento y Configuración del Sistema</div>', unsafe_allow_html=True)
     
-    t_usuarios, t_actividades, t_alumnos, t_herramientas = st.tabs([
+    t_usuarios, t_actividades, t_maestros, t_alumnos, t_herramientas = st.tabs([
         "👥 Usuarios del Sistema", 
-        "📚 Catálogo de Actividades y Maestros", 
+        "📚 Catálogo de Actividades", 
+        "🎓 Catálogo de Maestros Talleristas",
         "👤 Base de Datos Alumnos", 
         "🔧 Herramientas de Datos"
     ])
@@ -1530,14 +1545,20 @@ elif pagina_actual == "Mantenimiento":
                             st.success(f"✅ Usuario {u_eliminar} eliminado.")
                             st.rerun()
 
-    # Pestaña 2: Catálogo de Actividades y Maestros
+    # Pestaña 2: Catálogo de Actividades
     with t_actividades:
         col_a1, col_a2 = st.columns([1, 2])
+        
+        # Cargar lista de maestros activos para el selector
+        lista_maestros_activos = df_maestros[df_maestros["ESTADO"] == "Activo"]["NOMBRE_COMPLETO"].dropna().tolist() if not df_maestros.empty else []
+        if "—" not in lista_maestros_activos:
+            lista_maestros_activos.insert(0, "—")
+
         with col_a1:
             st.markdown("##### ➕ Registrar / Modificar Actividad")
             with st.form("form_mantenimiento_actividad"):
                 n_act = st.text_input("NOMBRE DEL TALLER / ACTIVIDAD", placeholder="Ej: YOGA").strip().upper()
-                n_maestro = st.text_input("MAESTRO / INSTRUCTOR A CARGO", placeholder="Ej: Profra. Martha").strip()
+                n_maestro = st.selectbox("MAESTRO / INSTRUCTOR A CARGO", lista_maestros_activos)
                 n_color = st.color_picker("COLOR EN LA AGENDA", "#EAB519")
                 n_impacto = st.selectbox("ÁREA DE IMPACTO CLINICO / ODS", [
                     "Física / Motora", 
@@ -1548,8 +1569,8 @@ elif pagina_actual == "Mantenimiento":
                 save_a = st.form_submit_button("💾 Guardar Actividad")
                 
             if save_a:
-                if not n_act or not n_maestro:
-                    st.warning("⚠️ Ingresa el nombre y el maestro a cargo.")
+                if not n_act:
+                    st.warning("⚠️ Ingresa el nombre del taller.")
                 else:
                     if not df_actividades.empty and n_act in df_actividades["ACTIVIDAD"].astype(str).str.upper().tolist():
                         df_actividades.loc[df_actividades["ACTIVIDAD"].astype(str).str.upper() == n_act, "MAESTRO"] = n_maestro
@@ -1591,6 +1612,57 @@ elif pagina_actual == "Mantenimiento":
                         if guardar_github(ACTIVIDADES_FILE, df_actividades, sha_actividades, f"Mantenimiento: Borrar actividad {act_eliminar}"):
                             st.success(f"✅ Actividad {act_eliminar} eliminada.")
                             st.rerun()
+
+    # Pestaña 3: Catálogo de Maestros Talleristas
+    with t_maestros:
+        col_m1, col_m2 = st.columns([1, 2])
+        with col_m1:
+            st.markdown("##### ➕ Registrar / Modificar Maestro")
+            with st.form("form_mantenimiento_maestro"):
+                m_nombre = st.text_input("NOMBRE COMPLETO", placeholder="Ej: PROF. JUAN PÉREZ").strip().upper()
+                m_tel = st.text_input("TELÉFONO DE CONTACTO", placeholder="Ej: (871) 123-4567")
+                m_esp = st.text_input("ESPECIALIDAD / ÁREA", placeholder="Ej: Arte / Terapia Física")
+                m_estado = st.selectbox("ESTADO", ["Activo", "Inactivo"])
+                save_m = st.form_submit_button("💾 Guardar Ficha de Maestro")
+                
+            if save_m:
+                if not m_nombre:
+                    st.warning("⚠️ El nombre es obligatorio.")
+                else:
+                    if not df_maestros.empty and m_nombre in df_maestros["NOMBRE_COMPLETO"].astype(str).str.upper().tolist():
+                        df_maestros.loc[df_maestros["NOMBRE_COMPLETO"].astype(str).str.upper() == m_nombre, "TELÉFONO"] = m_tel
+                        df_maestros.loc[df_maestros["NOMBRE_COMPLETO"].astype(str).str.upper() == m_nombre, "ESPECIALIDAD"] = m_esp
+                        df_maestros.loc[df_maestros["NOMBRE_COMPLETO"].astype(str).str.upper() == m_nombre, "ESTADO"] = m_estado
+                        msg_c = f"Mantenimiento: Actualizar maestro {m_nombre}"
+                    else:
+                        nuevo_m = pd.DataFrame([{"NOMBRE_COMPLETO": m_nombre, "TELÉFONO": m_tel, "ESPECIALIDAD": m_esp, "ESTADO": m_estado}])
+                        df_maestros = pd.concat([df_maestros, nuevo_m], ignore_index=True)
+                        msg_c = f"Mantenimiento: Registrar maestro {m_nombre}"
+                        
+                    with st.spinner("Guardando en GitHub..."):
+                        if guardar_github(MAESTROS_FILE, df_maestros, sha_maestros, msg_c):
+                            st.success(f"🎉 Maestro guardado: {m_nombre}")
+                            st.rerun()
+                            
+        with col_m2:
+            st.markdown("##### 📋 Maestros Registrados")
+            if not df_maestros.empty:
+                st.dataframe(df_maestros, use_container_width=True)
+            else:
+                st.info("No hay maestros registrados.")
+                
+            st.markdown("##### ❌ Eliminar Maestro del Registro")
+            m_eliminar = st.selectbox("Selecciona el maestro a borrar:", df_maestros["NOMBRE_COMPLETO"].tolist() if not df_maestros.empty else [])
+            if st.button("❌ ELIMINAR MAESTRO"):
+                if m_eliminar:
+                    if m_eliminar == "—":
+                        st.error("❌ No se puede eliminar el maestro por defecto '—'.")
+                    else:
+                        df_maestros = df_maestros[df_maestros["NOMBRE_COMPLETO"] != m_eliminar]
+                        with st.spinner("Eliminando maestro..."):
+                            if guardar_github(MAESTROS_FILE, df_maestros, sha_maestros, f"Mantenimiento: Borrar maestro {m_eliminar}"):
+                                st.success(f"✅ Maestro {m_eliminar} eliminado.")
+                                st.rerun()
 
     # Pestaña 3: Base de Datos Alumnos
     with t_alumnos:
@@ -1675,7 +1747,7 @@ elif pagina_actual == "Mantenimiento":
                     with st.spinner("Inyectando registros en GitHub..."):
                         exito_cal = guardar_github(CALENDARIO_FILE, df_cal_sembrado, sha_calendario, "Semillero: Inyectar registros de calendario")
                         st.spinner("Actualizando asistencia...")
-                        df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades = cargar_datos_sistema()
+                        df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades, df_maestros, sha_maestros = cargar_datos_sistema()
                         exito_asist = guardar_github(EXCEL_FILE, df_asist_sembrado, archivo_sha, "Semillero: Inyectar registros de asistencia")
                         
                         if exito_cal and exito_asist:
@@ -1701,7 +1773,7 @@ elif pagina_actual == "Mantenimiento":
                     
                     with st.spinner("Limpiando base de datos..."):
                         exito_cal = guardar_github(CALENDARIO_FILE, df_cal_vacio, sha_calendario, "Limpieza total de calendario")
-                        df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades = cargar_datos_sistema()
+                        df_original, archivo_sha, df_calendario, sha_calendario, df_integrantes, sha_integrantes, df_no_laborables, sha_no_laborables, df_usuarios, sha_usuarios, df_actividades, sha_actividades, df_maestros, sha_maestros = cargar_datos_sistema()
                         exito_asist = guardar_github(EXCEL_FILE, df_asist_vacia, archivo_sha, "Limpieza total de asistencias")
                         
                         if exito_cal and exito_asist:
